@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Thiệp Yến – Làm thiệp cảm ơn, in A4</title>
+  <meta name="description" content="Làm thiệp cảm ơn, thiệp kính tặng, nhãn hộp yến và in nhiều thiệp trên một tờ A4.">
+  <meta name="theme-color" content="#9E1B22">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Thiệp Yến">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Baloo+2:wght@400;700;800&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Bevan&family=Charm:wght@400;700&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500;1,700&family=Dancing+Script:wght@400;700&family=Great+Vibes&family=Lobster&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Pacifico&family=Patrick+Hand&family=Pattaya&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 100 64" aria-hidden="true"><path fill="currentColor" d="M50 12C53 12 55 15 55 18C55 20 54.6 22 54 24C64 18 80 10 98 8C86 16 70 26 56 32C55 35 54.5 37 54 39L61 62L50 48L39 62L46 39C45.5 37 45 35 44 32C30 26 14 16 2 8C20 10 36 18 46 24C45.4 22 45 20 45 18C45 15 47 12 50 12Z"/></svg>
+      <span>Thiệp Yến</span>
+    </div>
+    <button class="btn-ghost" id="btnHelp" type="button" aria-label="Hướng dẫn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2 1-1.2 1.9v.6M12 17.4v.1"/></svg>
+      <span>Hướng dẫn</span>
+    </button>
+    <button class="btn-print" id="btnPrint" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3.5h10V9M7 17.5H4.5v-7A1.5 1.5 0 0 1 6 9h12a1.5 1.5 0 0 1 1.5 1.5v7H17"/><path d="M7 14h10v6.5H7z"/></svg>
+      <span>In thiệp</span>
+    </button>
+  </header>
+
+  <div class="banner" id="inappBanner" hidden>
+    Bạn đang mở trong <b id="inappName">ứng dụng</b>, nút In có thể không chạy.
+    Hãy bấm <b>⋯</b> ở góc màn hình rồi chọn <b>“Mở bằng trình duyệt”</b> (Safari).
+  </div>
+
+  <main class="main">
+    <section class="preview-pane" aria-label="Xem trước tờ in">
+      <div class="preview-bar">
+        <span id="sheetInfo">1 tờ A4</span>
+        <button class="chip" id="btnZoom" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20M10.5 7.5v6M7.5 10.5h6"/></svg>
+          Xem to
+        </button>
+      </div>
+      <div class="preview" id="preview"><div class="sheets" id="sheets"></div></div>
+    </section>
+
+    <section class="panel">
+      <nav class="tabbar" role="tablist" aria-label="Các bước làm thiệp">
+        <button role="tab" data-tab="mau" aria-selected="true" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+          <span>Mẫu</span>
+        </button>
+        <button role="tab" data-tab="chu" aria-selected="false" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19L10 5l6 14M6.3 14h7.4M16.5 19.5h4"/></svg>
+          <span>Chữ</span>
+        </button>
+        <button role="tab" data-tab="mau-sac" aria-selected="false" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.3 0 1.8-.9 1.4-2-.5-1.3.2-2.5 1.6-2.5h2c1.9 0 3.5-1.6 3.5-3.6C20.5 7.4 16.7 3.5 12 3.5z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7.3" r="1.2"/><circle cx="15" cy="7.8" r="1.2"/></svg>
+          <span>Màu</span>
+        </button>
+        <button role="tab" data-tab="giay" aria-selected="false" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="1.5"/><path d="M12 2.5v19M5 12h14" stroke-dasharray="2 1.6"/></svg>
+          <span>Khổ giấy</span>
+        </button>
+        <button role="tab" data-tab="tiem" aria-selected="false" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5V20h16V9.5M3 9.5l1.8-5h14.4l1.8 5zM3 9.5c0 1.4 1.1 2.5 2.5 2.5S8 10.9 8 9.5c0 1.4 1.1 2.5 2.5 2.5h3c1.4 0 2.5-1.1 2.5-2.5 0 1.4 1.1 2.5 2.5 2.5S21 10.9 21 9.5M10 20v-5h4v5"/></svg>
+          <span>Tiệm</span>
+        </button>
+      </nav>
+
+      <div class="panel-scroll" id="panelScroll">
+
+        <!-- ============ MẪU ============ -->
+        <div class="tab" data-tab="mau">
+          <h2>Chọn mẫu thiệp</h2>
+          <p class="hint">Bấm vào một mẫu. Sau đó sang mục <b>Chữ</b> để sửa lời.</p>
+          <div class="tpl-grid" id="tplGrid"></div>
+
+          <div id="savedWrap">
+            <h2>Mẫu của tôi</h2>
+            <p class="hint" id="savedEmpty">Chưa có. Làm xong một thiệp ưng ý, bấm nút dưới đây để lưu lại dùng lần sau.</p>
+            <div class="saved-list" id="savedList"></div>
+            <button class="btn-wide" id="btnSave" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9.5L19.5 7.5v12a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1z"/><path d="M8 3.5v5h7v-5M8 20.5v-6h8v6"/></svg>
+              Lưu thiệp này vào “Mẫu của tôi”
+            </button>
+          </div>
+        </div>
+
+        <!-- ============ CHỮ ============ -->
+        <div class="tab" data-tab="chu" hidden>
+          <label class="field">
+            <span class="label" id="lb-title">Tiêu đề</span>
+            <input type="text" id="fTitle" data-field="title" autocomplete="off" placeholder="VD: Lời Cảm Ơn">
+          </label>
+          <div class="chips-scroll" id="titleChips"></div>
+
+          <label class="field">
+            <span class="label" id="lb-to">Gửi đến</span>
+            <textarea id="fTo" data-field="to" rows="2" autocomplete="off" placeholder="VD: Kính gửi Cô Lan"></textarea>
+          </label>
+          <p class="hint tip">💡 Mỗi người viết <b>một dòng</b> → mỗi người được <b>một thiệp riêng</b>. Để trống nếu không cần. <span id="toCount"></span></p>
+
+          <label class="field">
+            <span class="label" id="lb-msg">Lời nhắn</span>
+            <textarea id="fMsg" data-field="msg" rows="5" autocomplete="off" placeholder="Gõ lời chúc ở đây"></textarea>
+          </label>
+          <button class="btn-wide soft" id="btnPhrases" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-8l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5z"/><path d="M7.5 9h9M7.5 12h6"/></svg>
+            Chọn câu chúc có sẵn
+          </button>
+
+          <label class="field">
+            <span class="label" id="lb-sign">Ký tên / Người gửi</span>
+            <textarea id="fSign" data-field="sign" rows="2" autocomplete="off" placeholder="VD: Trân trọng cảm ơn!"></textarea>
+          </label>
+
+          <label class="switch-row">
+            <span>In tên tiệm &amp; số điện thoại ở cuối thiệp</span>
+            <input type="checkbox" class="switch" data-bind="showShop">
+          </label>
+          <p class="hint" id="shopMissing" hidden>Chưa có tên tiệm — vào mục <b>Tiệm</b> để điền.</p>
+
+          <button class="link-btn" id="btnResetText" type="button">↺ Dùng lại chữ mẫu ban đầu</button>
+
+          <h2>Kiểu chữ</h2>
+          <div class="segment" id="partSeg" role="group" aria-label="Chỉnh kiểu chữ cho"></div>
+          <div class="font-grid" id="fontGrid"></div>
+
+          <div class="row-controls">
+            <div class="ctrl">
+              <span class="label">Cỡ chữ</span>
+              <div class="stepper">
+                <button type="button" id="sizeDown" aria-label="Chữ nhỏ lại">A−</button>
+                <output id="sizeOut">100%</output>
+                <button type="button" id="sizeUp" aria-label="Chữ to lên">A+</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <span class="label">Kiểu</span>
+              <div class="toggles">
+                <button type="button" class="tog" id="togBold" aria-pressed="false"><b>Đậm</b></button>
+                <button type="button" class="tog" id="togItalic" aria-pressed="false"><i>Nghiêng</i></button>
+                <button type="button" class="tog" id="togUpper" aria-pressed="false">IN HOA</button>
+              </div>
+            </div>
+            <div class="ctrl" id="alignCtrl">
+              <span class="label">Canh lề</span>
+              <div class="toggles" id="alignToggles">
+                <button type="button" class="tog" data-align="left" aria-label="Canh trái">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 10h10M4 14h16M4 18h10"/></svg>
+                </button>
+                <button type="button" class="tog" data-align="center" aria-label="Canh giữa">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 10h10M4 14h16M7 18h10"/></svg>
+                </button>
+                <button type="button" class="tog" data-align="right" aria-label="Canh phải">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M10 10h10M4 14h16M10 18h10"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="ctrl-color">
+            <span class="label">Màu chữ</span>
+            <div class="swatches" id="swPart" data-which="title"></div>
+          </div>
+          <p class="hint">Chữ quá dài sẽ tự thu nhỏ cho vừa thiệp.</p>
+        </div>
+
+        <!-- ============ MÀU ============ -->
+        <div class="tab" data-tab="mau-sac" hidden>
+          <h2>Màu thiệp</h2>
+          <div class="theme-grid" id="themeGrid"></div>
+
+          <div id="colorRows"></div>
+
+          <label class="switch-row">
+            <span>Hình trang trí (khung, hoa, chim yến)</span>
+            <input type="checkbox" class="switch" data-bind="deco">
+          </label>
+          <p class="hint">Tắt hình trang trí để thiệp chỉ còn chữ, đỡ tốn mực.</p>
+        </div>
+
+        <!-- ============ KHỔ GIẤY ============ -->
+        <div class="tab" data-tab="giay" hidden>
+          <h2>Một tờ A4 in mấy thiệp?</h2>
+          <div class="layout-grid" id="layoutGrid"></div>
+
+          <div id="stripCtrl" hidden>
+            <h2>Số dòng chữ trên một tờ</h2>
+            <div class="stepper big">
+              <button type="button" id="rowsDown" aria-label="Bớt dòng">−</button>
+              <output id="rowsOut">10</output>
+              <button type="button" id="rowsUp" aria-label="Thêm dòng">+</button>
+            </div>
+          </div>
+
+          <div id="orientCtrl">
+            <h2>Hướng thiệp</h2>
+            <div class="segment" id="orientSeg">
+              <button type="button" data-orient="portrait" aria-pressed="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3.5" width="10" height="17" rx="1.5"/></svg> Dọc
+              </button>
+              <button type="button" data-orient="landscape" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7" width="17" height="10" rx="1.5"/></svg> Ngang
+              </button>
+            </div>
+            <p class="hint" id="rotateHint" hidden>Thiệp được xoay trên giấy cho vừa khổ — cắt ra sẽ đúng chiều.</p>
+          </div>
+
+          <h2>Viền cắt quanh chữ</h2>
+          <div class="segment" id="contourSeg" role="group" aria-label="Viền cắt quanh chữ">
+            <button type="button" data-ct="off" aria-pressed="false">Không</button>
+            <button type="button" data-ct="sat" aria-pressed="false">Sát</button>
+            <button type="button" data-ct="vua" aria-pressed="false">Vừa</button>
+            <button type="button" data-ct="rong" aria-pressed="false">Rộng</button>
+          </div>
+          <p class="hint">Đường viền mảnh ôm theo hình chữ, để cắt rời chữ ra làm sticker dán hộp quà.</p>
+
+          <label class="switch-row">
+            <span>Đường cắt nét đứt</span>
+            <input type="checkbox" class="switch" data-bind="cut">
+          </label>
+          <p class="hint">Giấy chừa lề trắng 6 mm quanh tờ để máy in không bị mất viền. Cắt theo nét đứt.</p>
+        </div>
+
+        <!-- ============ TIỆM ============ -->
+        <div class="tab" data-tab="tiem" hidden>
+          <h2>Thông tin tiệm</h2>
+          <p class="hint">Điền một lần, lần sau tự nhớ. Thông tin chỉ lưu trên máy này.</p>
+          <label class="field">
+            <span class="label">Tên tiệm</span>
+            <input type="text" data-shop="name" autocomplete="organization" placeholder="VD: Yến Sào Cô Hạnh">
+          </label>
+          <label class="field">
+            <span class="label">Số điện thoại / Zalo</span>
+            <input type="tel" data-shop="phone" autocomplete="tel" placeholder="VD: 0909 123 456">
+          </label>
+          <label class="field">
+            <span class="label">Dòng thêm (không bắt buộc)</span>
+            <input type="text" data-shop="extra" autocomplete="off" placeholder="Địa chỉ, Facebook, ...">
+          </label>
+
+          <label class="switch-row">
+            <span>In tên tiệm &amp; số điện thoại ở cuối thiệp</span>
+            <input type="checkbox" class="switch" data-bind="showShop">
+          </label>
+
+          <h2>Logo tiệm</h2>
+          <div class="logo-row">
+            <div class="logo-box" id="logoBox"><span>Chưa có logo</span></div>
+            <div class="logo-actions">
+              <label class="btn-wide soft file-btn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17l5-4.5 3.5 3 3-2.5 4.5 4"/></svg>
+                Chọn ảnh logo
+                <input type="file" id="logoInput" accept="image/*" hidden>
+              </label>
+              <button class="link-btn danger" id="btnLogoRemove" type="button" hidden>Xóa logo</button>
+            </div>
+          </div>
+          <label class="switch-row">
+            <span>In logo trên thiệp</span>
+            <input type="checkbox" class="switch" data-bind="showLogo">
+          </label>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ HỘP THOẠI ============ -->
+<div class="modal" id="mPrint" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="mPrintTitle">
+    <button class="modal-x" data-close type="button" aria-label="Đóng">×</button>
+    <h3 id="mPrintTitle">In thiệp</h3>
+    <p class="muted" id="printSummary"></p>
+    <button class="big-choice primary" id="btnDoPrint" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3.5h10V9M7 17.5H4.5v-7A1.5 1.5 0 0 1 6 9h12a1.5 1.5 0 0 1 1.5 1.5v7H17"/><path d="M7 14h10v6.5H7z"/></svg>
+      <span><b>In ngay</b><small>Chọn máy in → bấm In</small></span>
+    </button>
+    <button class="big-choice" id="btnPdf" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2.5h8.5L19 7v13.5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-17a1 1 0 0 1 1-1z"/><path d="M14 2.5V7h5M8.5 13.5h7M8.5 17h5"/></svg>
+      <span><b>Tạo file PDF</b><small>Khi nút In không chạy, hoặc để gửi Zalo cho tiệm in</small></span>
+    </button>
+    <div class="tips">
+      <b>Mẹo in đẹp</b>
+      <ul>
+        <li>Khổ giấy <b>A4</b>, tỉ lệ <b>100%</b> (không thu nhỏ).</li>
+        <li>Nên dùng giấy A4 dày (giấy bìa / giấy in màu) nếu máy in hỗ trợ.</li>
+        <li>In thử 1 tờ giấy thường trước khi in giấy đẹp.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mPdf" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="mPdfTitle">
+    <button class="modal-x" data-close type="button" aria-label="Đóng">×</button>
+    <h3 id="mPdfTitle">File PDF đã sẵn sàng</h3>
+    <p class="muted">Bấm <b>Gửi / In</b> rồi chọn <b>In</b> (hoặc Lưu vào Tệp, gửi Zalo...).</p>
+    <button class="big-choice primary" id="btnPdfShare" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3.5M8 7.5l4-4 4 4M7 11H5.5v9.5h13V11H17"/></svg>
+      <span><b>Gửi / In file PDF</b><small>Mở bảng chia sẻ của điện thoại</small></span>
+    </button>
+    <a class="big-choice" id="btnPdfOpen" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4.5h5.5V10M19.5 4.5L11 13M17.5 14v5.5h-13v-13H10"/></svg>
+      <span><b>Mở file PDF</b><small>Xem file, rồi bấm nút chia sẻ để in</small></span>
+    </a>
+  </div>
+</div>
+
+<div class="modal" id="mPhrases" hidden>
+  <div class="modal-card tall" role="dialog" aria-modal="true" aria-labelledby="mPhrasesTitle">
+    <button class="modal-x" data-close type="button" aria-label="Đóng">×</button>
+    <h3 id="mPhrasesTitle">Câu chúc có sẵn</h3>
+    <p class="muted">Bấm vào câu muốn dùng. Câu sẽ thay vào ô Lời nhắn.</p>
+    <div class="phrase-list" id="phraseList"></div>
+  </div>
+</div>
+
+<div class="modal" id="mHelp" hidden>
+  <div class="modal-card tall" role="dialog" aria-modal="true" aria-labelledby="mHelpTitle">
+    <button class="modal-x" data-close type="button" aria-label="Đóng">×</button>
+    <h3 id="mHelpTitle">Làm thiệp trong 3 bước</h3>
+    <ol class="steps">
+      <li><b>Chọn mẫu</b> — bấm vào mẫu thiệp thích ở mục <b>Mẫu</b>.</li>
+      <li><b>Sửa chữ</b> — ở mục <b>Chữ</b>, gõ tên người nhận và lời chúc, hoặc bấm “Chọn câu chúc có sẵn”.</li>
+      <li><b>Bấm “In thiệp”</b> ở góc trên → chọn máy in → In. Cắt theo đường nét đứt.</li>
+    </ol>
+    <div id="welcomeShop">
+      <h3>Tên tiệm của bạn</h3>
+      <p class="muted">In ở cuối thiệp. Có thể sửa sau ở mục <b>Tiệm</b>.</p>
+      <label class="field">
+        <span class="label">Tên tiệm</span>
+        <input type="text" data-shop="name" autocomplete="organization" placeholder="VD: Yến Sào Cô Hạnh">
+      </label>
+      <label class="field">
+        <span class="label">Số điện thoại / Zalo</span>
+        <input type="tel" data-shop="phone" autocomplete="tel" placeholder="VD: 0909 123 456">
+      </label>
+    </div>
+    <div class="tips">
+      <b>Mẹo hay</b>
+      <ul>
+        <li>Muốn mỗi thiệp một tên khác nhau: ở ô <b>Gửi đến</b>, mỗi người viết một dòng.</li>
+        <li>Mục <b>Khổ giấy</b>: chọn 1 tờ A4 in 1, 2, 4, 8... thiệp. Chọn <b>Dải chữ</b> để in nhiều dòng chữ màu.</li>
+        <li>Thiệp ưng ý thì bấm <b>Lưu</b> ở mục Mẫu để lần sau dùng lại.</li>
+        <li id="a2hsTip"><b>Mở nhanh như ứng dụng:</b> trong Safari bấm nút Chia sẻ <span class="share-ico" aria-hidden="true">⬆︎</span> → <b>Thêm vào MH chính</b>.</li>
+      </ul>
+    </div>
+    <button class="btn-wide primary" data-close type="button">Bắt đầu làm thiệp</button>
+  </div>
+</div>
+
+<div class="modal zoom" id="mZoom" hidden>
+  <div class="zoom-bar">
+    <button class="chip" id="zoomOut" type="button" aria-label="Thu nhỏ">−</button>
+    <button class="chip" id="zoomIn" type="button" aria-label="Phóng to">+</button>
+    <button class="chip strong" data-close type="button">Đóng</button>
+  </div>
+  <div class="zoom-body" id="zoomBody"></div>
+</div>
+
+<div class="busy" id="busy" hidden>
+  <div class="busy-card"><div class="spinner"></div><p id="busyText">Đang xử lý…</p></div>
+</div>
+
+<div class="toast" id="toast" hidden><span id="toastText"></span><button type="button" id="toastAction" hidden>Hoàn tác</button></div>
+
+<script src="js/ornaments.js"></script>
+<script src="js/contour.js"></script>
+<script src="js/templates.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
