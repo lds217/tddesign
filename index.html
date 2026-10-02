@@ -41,6 +41,10 @@
     Hãy bấm <b>⋯</b> ở góc màn hình rồi chọn <b>“Mở bằng trình duyệt”</b> (Safari).
   </div>
 
+  <div class="banner" id="oldBanner" hidden>
+    Trình duyệt này đã cũ nên thiệp có thể hiển thị sai. Hãy cập nhật iPhone (Cài đặt → Cài đặt chung → Cập nhật phần mềm) lên iOS 16 trở lên.
+  </div>
+
   <main class="main">
     <section class="preview-pane" aria-label="Xem trước tờ in">
       <div class="preview-bar">
@@ -50,6 +54,7 @@
           Xem to
         </button>
       </div>
+      <div class="warn" id="fitWarn" role="status" hidden></div>
       <div class="preview" id="preview"><div class="sheets" id="sheets"></div></div>
     </section>
 

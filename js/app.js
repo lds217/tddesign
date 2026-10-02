@@ -75,17 +75,62 @@
     return s;
   }
 
+  const isObj = (o) => !!o && typeof o === 'object' && !Array.isArray(o);
+  const FONT_SET = new Set(FONTS.map((f) => f.family));
+  const COLOR_RE = /^#[0-9a-f]{6}$/i;
+
+  // Gộp dữ liệu đã lưu (có thể cũ hoặc hỏng) vào trạng thái mặc định của mẫu, kiểm tra từng giá trị
   function merge(base, s) {
-    const out = { ...base, ...s };
-    ['text', 'edited', 'colors'].forEach((k) => (out[k] = { ...base[k], ...((s && s[k]) || {}) }));
-    out.style = {};
-    Object.keys(base.style).forEach((k) => {
-      out.style[k] = { ...base.style[k], ...((s.style && s.style[k]) || {}) };
-    });
+    if (!isObj(s)) return base;
+    const out = { ...base };
+    ['layout', 'orient', 'theme', 'contour'].forEach((k) => { if (typeof s[k] === 'string') out[k] = s[k]; });
+    ['cut', 'deco', 'showShop'].forEach((k) => { if (typeof s[k] === 'boolean') out[k] = s[k]; });
     if (!THEMES[out.theme]) out.theme = base.theme;
     if (!LAYOUT[out.layout]) out.layout = base.layout;
+    if (out.orient !== 'portrait' && out.orient !== 'landscape') out.orient = base.orient;
     if (!(out.contour in CONTOUR)) out.contour = base.contour;
+    out.rows = Number.isFinite(+s.rows) ? Math.min(20, Math.max(2, Math.round(+s.rows))) : base.rows;
+    out.text = { ...base.text };
+    out.edited = { ...base.edited };
+    FIELDS.forEach((k) => {
+      if (isObj(s.text) && typeof s.text[k] === 'string') out.text[k] = s.text[k];
+      if (isObj(s.edited) && typeof s.edited[k] === 'boolean') out.edited[k] = s.edited[k];
+    });
+    out.colors = { ...base.colors };
+    if (isObj(s.colors)) Object.keys(out.colors).forEach((k) => {
+      const c = s.colors[k];
+      if (c === null || (typeof c === 'string' && COLOR_RE.test(c))) out.colors[k] = c;
+    });
+    out.style = {};
+    Object.keys(base.style).forEach((k) => {
+      const b = base.style[k];
+      const x = isObj(s.style) && isObj(s.style[k]) ? s.style[k] : {};
+      out.style[k] = {
+        font: FONT_SET.has(x.font) ? x.font : b.font,
+        size: Number.isFinite(+x.size) && x.size !== null && x.size !== '' ? Math.min(2.5, Math.max(0.5, +x.size)) : b.size,
+        bold: typeof x.bold === 'boolean' ? x.bold : b.bold,
+        italic: typeof x.italic === 'boolean' ? x.italic : b.italic,
+        upper: typeof x.upper === 'boolean' ? x.upper : b.upper,
+        align: ['left', 'center', 'right'].includes(x.align) ? x.align : b.align,
+      };
+    });
     return out;
+  }
+
+  function cleanSaved(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((it) => isObj(it) && isObj(it.state) && TPL[it.state.tpl])
+      .map((it) => ({ name: String(it.name || 'Mẫu').slice(0, 80), ts: Number(it.ts) || Date.now(), state: it.state }));
+  }
+
+  function cleanShop(o) {
+    const d = { name: '', phone: '', extra: '', logo: '', showLogo: true };
+    if (!isObj(o)) return d;
+    ['name', 'phone', 'extra'].forEach((k) => { if (typeof o[k] === 'string') d[k] = o[k].slice(0, 200); });
+    if (typeof o.logo === 'string' && o.logo.startsWith('data:image/')) d.logo = o.logo;
+    if (typeof o.showLogo === 'boolean') d.showLogo = o.showLogo;
+    return d;
   }
 
   function loadState() {
@@ -97,9 +142,8 @@
   const clone = (o) => JSON.parse(JSON.stringify(o));
 
   let state = loadState();
-  let shop = Object.assign({ name: '', phone: '', extra: '', logo: '', showLogo: true }, store.get(KEY.shop, {}));
-  let saved = store.get(KEY.saved, []);
-  if (!Array.isArray(saved)) saved = [];
+  let shop = cleanShop(store.get(KEY.shop, null));
+  let saved = cleanSaved(store.get(KEY.saved, []));
   let part = 'title'; // phần đang chỉnh kiểu chữ
 
   const saveState = debounce(() => store.set(KEY.state, state), 300);
@@ -132,8 +176,9 @@
     };
   }
 
+  const MAX_CARDS = 300;
   function recipients(st) {
-    return String(st.text.to || '').split('\n').map((s) => s.trim()).filter(Boolean);
+    return String(st.text.to || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, MAX_CARDS);
   }
 
   // Kiểu chữ thực tế của từng ô chữ
@@ -156,6 +201,14 @@
       out[f] = { ...s, color };
     });
     return out;
+  }
+
+  // Độ sáng 0..1 của màu #rrggbb (để viền cắt không bị quá nhạt trên giấy trắng)
+  function luminance(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return 0;
+    const n = parseInt(m[1], 16);
+    return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
   }
 
   function contourMm(st, w, h) {
@@ -217,7 +270,8 @@
     const box = `viewBox="0 0 ${r2(w)} ${r2(h)}" width="${r2(w)}mm" height="${r2(h)}mm" preserveAspectRatio="none" aria-hidden="true"`;
     const svg = deco ? `<svg class="deco" ${box}>${t.deco(w, h, Math.min(w, h), th)}</svg>` : '';
     const ct = contourMm(st, w, h);
-    const ctSvg = ct ? `<svg class="contour" ${box}><path d="" fill="none" stroke="${fs.title.color}" stroke-width="0.25" stroke-linejoin="round"/></svg>` : '';
+    const ctColor = luminance(fs.title.color) > 0.72 ? '#8C8C8C' : fs.title.color;
+    const ctSvg = ct ? `<svg class="contour" ${box}><path d="" fill="none" stroke="${ctColor}" stroke-width="0.25" stroke-linejoin="round"/></svg>` : '';
     const classes = ['card', rotate && 'rot', t.tight && 'tight'].filter(Boolean).join(' ');
     return `<div class="${classes}" data-k="${esc(key)}"${ct ? ` data-ct="${ct}"` : ''} style="${esc(style)}">${svg}${ctSvg}<div class="content"><div class="main-c"><div class="stack">${stack}</div></div>${shopHTML}</div></div>`;
   }
@@ -263,18 +317,26 @@
     return { html, nSheets, total, g };
   }
 
-  // Thu nhỏ chữ cho vừa thiệp (tìm nhị phân trên biến --fit)
+  // Bộ nhớ đệm có giới hạn (bỏ mục cũ nhất khi đầy)
+  function lruSet(map, k, v, max) {
+    if (map.has(k)) map.delete(k);
+    map.set(k, v);
+    if (map.size > max) map.delete(map.keys().next().value);
+  }
+  const contentKey = (card) => card.querySelector('.content').innerHTML;
+
+  // Thu nhỏ chữ cho vừa thiệp (tìm nhị phân trên biến --fit). ok = false nếu nhỏ hết cỡ vẫn tràn.
   function fitOne(card) {
     const content = card.querySelector('.content');
     const main = card.querySelector('.main-c');
     const stack = card.querySelector('.stack');
-    if (!content || !main || !stack) return 1;
+    if (!content || !main || !stack) return { fit: '1', ok: true };
     const fits = () =>
       stack.offsetHeight <= main.clientHeight + 0.5 &&
       stack.scrollWidth <= stack.clientWidth + 1 &&
       content.scrollWidth <= content.clientWidth + 1;
     card.style.setProperty('--fit', '1');
-    if (fits()) return 1;
+    if (fits()) return { fit: '1', ok: true };
     let lo = 0.2;
     let hi = 1;
     for (let i = 0; i < 9; i++) {
@@ -284,59 +346,107 @@
       else hi = mid;
     }
     card.style.setProperty('--fit', lo.toFixed(4));
-    return lo;
+    return { fit: lo.toFixed(4), ok: lo > 0.2 || fits() };
   }
 
+  // Kết quả co chữ được nhớ theo nội dung + kích thước thiệp → gõ thêm 1 tên chỉ tính lại 1 thiệp
+  const fitCache = new Map();
   function fitCards(root) {
-    const done = new Map();
     $$('.card', root).forEach((card) => {
-      const k = card.closest('.tpl, .saved-item') ? null : card.dataset.k;
-      if (k && done.has(k)) card.style.setProperty('--fit', done.get(k));
-      else {
-        const v = fitOne(card).toFixed(4);
-        if (k) done.set(k, v);
+      card.style.removeProperty('--fit');
+      const key = card.style.cssText + '|' + contentKey(card);
+      let v = fitCache.get(key);
+      if (!v) {
+        v = fitOne(card);
+        lruSet(fitCache, key, v, 600);
+      } else {
+        card.style.setProperty('--fit', v.fit);
       }
+      card.toggleAttribute('data-over', !v.ok);
     });
   }
 
-  /* Viền cắt quanh chữ: đo trên bản sao không xoay/không thu nhỏ, kết quả dùng chung cho các thiệp giống nhau */
+  /* Viền cắt quanh chữ: đo trên bản sao không xoay/không thu nhỏ.
+   * Kết quả được nhớ theo nội dung; phần chưa có được tính dần ở nền để không làm đơ máy. */
   const contourCache = new Map();
   let measureStage = null;
-  function contourFor(card) {
-    const key = card.style.cssText + '|' + card.querySelector('.content').innerHTML;
-    if (contourCache.has(key)) return contourCache.get(key);
-    let d = '';
+  function measureContour(card) {
     try {
-      if (!card.closest('.card-host, .sheet') || card.closest('.pdf-stage')) {
-        d = window.Contour.path(card, parseFloat(card.dataset.ct));
-      } else {
-        if (!measureStage) {
-          measureStage = document.createElement('div');
-          measureStage.className = 'measure-stage';
-          document.body.appendChild(measureStage);
-        }
-        const c = card.cloneNode(true);
-        c.classList.remove('rot');
-        measureStage.appendChild(c);
-        d = window.Contour.path(c, parseFloat(card.dataset.ct));
-        measureStage.removeChild(c);
+      const offset = parseFloat(card.dataset.ct);
+      if (card.closest('.pdf-stage')) return window.Contour.path(card, offset);
+      if (!measureStage) {
+        measureStage = document.createElement('div');
+        measureStage.className = 'measure-stage';
+        document.body.appendChild(measureStage);
       }
+      const c = card.cloneNode(true);
+      c.classList.remove('rot');
+      measureStage.appendChild(c);
+      const d = window.Contour.path(c, offset);
+      measureStage.removeChild(c);
+      return d;
     } catch (e) {
       console.error(e);
+      return '';
     }
-    if (contourCache.size > 80) contourCache.clear();
-    contourCache.set(key, d);
+  }
+  function contourFor(card) {
+    const key = card.style.cssText + '|' + contentKey(card);
+    let d = contourCache.get(key);
+    if (d === undefined) {
+      d = measureContour(card);
+      lruSet(contourCache, key, d, 600);
+    }
     return d;
   }
-  function applyContours(root) {
-    $$('.card[data-ct]', root).forEach((card) => {
-      const p = card.querySelector('.contour path');
-      if (p) p.setAttribute('d', contourFor(card));
-    });
+  function setContour(card, d) {
+    const p = card.querySelector('.contour path');
+    if (p) p.setAttribute('d', d);
   }
-  function finish(root) {
+  function applyContours(root, sync) {
+    const todo = [];
+    $$('.card[data-ct]', root).forEach((card) => {
+      const d = contourCache.get(card.style.cssText + '|' + contentKey(card));
+      if (d !== undefined) setContour(card, d);
+      else todo.push(card);
+    });
+    const gen = (root._ctGen = (root._ctGen || 0) + 1);
+    const step = () => {
+      if (root._ctGen !== gen) return;
+      const t0 = performance.now();
+      while (todo.length && (sync || performance.now() - t0 < 14)) {
+        const card = todo.shift();
+        setContour(card, contourFor(card));
+      }
+      if (todo.length) setTimeout(step, 0);
+    };
+    if (todo.length) step();
+  }
+  function finish(root, sync) {
     fitCards(root);
-    applyContours(root);
+    applyContours(root, sync);
+  }
+
+  // Cảnh báo khi chữ bị tràn hoặc in ra quá nhỏ (< 2 mm ≈ 5.7pt)
+  function checkWarn() {
+    let over = false;
+    let minMm = Infinity;
+    const seen = new Set();
+    $$('#sheets .card').forEach((c) => {
+      if (c.hasAttribute('data-over')) over = true;
+      const k = c.dataset.k;
+      if (seen.has(k)) return;
+      seen.add(k);
+      c.querySelectorAll('.t-title, .t-to, .t-msg, .t-sign').forEach((el) => {
+        const mm = parseFloat(getComputedStyle(el).fontSize) / PX;
+        if (mm < minMm) minMm = mm;
+      });
+    });
+    const w = $('#fitWarn');
+    const tiny = minMm < 2;
+    w.hidden = !(over || tiny);
+    if (over) w.textContent = '⚠️ Chữ nhiều quá, bị tràn ra ngoài thiệp. Bớt chữ hoặc chọn thiệp to hơn ở mục Khổ giấy.';
+    else if (tiny) w.textContent = '⚠️ Chữ in ra sẽ rất nhỏ, khó đọc. Bớt chữ hoặc chọn thiệp to hơn ở mục Khổ giấy.';
   }
 
   function thumbHTML(st, maxW, maxH) {
@@ -356,6 +466,7 @@
     $('#sheets').innerHTML = last.html;
     sizePreview();
     finish($('#sheets'));
+    checkWarn();
     const { g, nSheets, total } = last;
     $('#sheetInfo').textContent = `${nSheets} tờ A4 · ${total} thiệp · ${cm(g.cw)}×${cm(g.ch)} cm`;
   }
@@ -384,8 +495,10 @@
   }
 
   function refitAll() {
+    fitCache.clear();
     contourCache.clear();
     finish($('#sheets'));
+    checkWarn();
     finish($('#tplGrid'));
     finish($('#savedList'));
   }
@@ -488,7 +601,10 @@
       if (document.activeElement !== el && el.value !== state.text[k]) el.value = state.text[k];
     });
     const n = recipients(state).length;
-    $('#toCount').textContent = n > 1 ? `Đang có ${n} người → ${n} thiệp.` : '';
+    const raw = String(state.text.to || '').split('\n').filter((x) => x.trim()).length;
+    $('#toCount').textContent = raw > MAX_CARDS
+      ? `Tối đa ${MAX_CARDS} người mỗi lần in — đang lấy ${MAX_CARDS} người đầu.`
+      : n > 1 ? `Đang có ${n} người → ${n} thiệp.` : '';
     $('#shopMissing').hidden = !(state.showShop && !shop.name && !shop.phone);
 
     markTemplates();
@@ -509,7 +625,19 @@
     setPressed('.theme-btn', (b) => b.dataset.theme === state.theme);
     $$('.swatches[data-which]').forEach((row) => {
       const cur = state.colors[row.dataset.which] || null;
-      row.querySelectorAll('.swatch[data-color]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.color || null) === cur)));
+      let hit = false;
+      row.querySelectorAll('.swatch[data-color]').forEach((b) => {
+        const on = (b.dataset.color || null) === cur;
+        hit = hit || on;
+        b.setAttribute('aria-pressed', String(on));
+      });
+      const custom = row.querySelector('.swatch.custom');
+      if (custom) {
+        custom.setAttribute('aria-pressed', String(!hit));
+        custom.style.background = hit ? '' : cur;
+        const inp = custom.querySelector('input');
+        if (!hit && cur && document.activeElement !== inp) inp.value = cur;
+      }
     });
     setPressed('#contourSeg button', (b) => b.dataset.ct === state.contour);
 
@@ -544,10 +672,21 @@
     if (renderQueued) return;
     renderQueued = true;
     requestAnimationFrame(() => {
+      if (!renderQueued) return;
       renderQueued = false;
       render();
       syncUI();
     });
+  }
+  // Vẽ ngay mọi thay đổi đang chờ (trước khi In / tạo PDF / xem to)
+  function flushRender() {
+    commitSoon.flush();
+    if (renderQueued) {
+      renderQueued = false;
+      render();
+      syncUI();
+    }
+    finish($('#sheets'), true);
   }
   const commitSoon = debounce(commit, 140);
   const rebuildThumbs = debounce(() => { buildTemplates(); buildSaved(); }, 400);
@@ -616,7 +755,7 @@
   /* ================= In ================= */
   function doPrint() {
     const go = () => {
-      refitAll();
+      flushRender();
       window.print();
     };
     if (fontsLoaded) go();
@@ -665,15 +804,14 @@
     stage.innerHTML = html;
     const card = stage.firstElementChild;
     fitOne(card);
-    if (card.dataset.ct) {
-      const p = card.querySelector('.contour path');
-      if (p) p.setAttribute('d', window.Contour.path(card, parseFloat(card.dataset.ct)));
-    }
+    if (card.dataset.ct) setContour(card, contourFor(card));
     return window.html2canvas(card, {
       scale: PDF_SCALE,
       backgroundColor: null,
       useCORS: true,
       logging: false,
+      // Chỉ sao chép vùng dựng thiệp, bỏ qua toàn bộ giao diện (nhanh hơn rất nhiều khi có nhiều thiệp)
+      ignoreElements: (el) => el.parentNode === document.body && !el.classList.contains('pdf-stage'),
       scrollX: 0,
       scrollY: 0,
       windowWidth: Math.max(1000, document.documentElement.clientWidth),
@@ -681,6 +819,7 @@
   }
 
   async function makePdf() {
+    flushRender();
     busy(true, 'Đang tạo file PDF… (vài giây)');
     let stage = null;
     try {
@@ -809,6 +948,7 @@
     scaleSheets(body, base * zoomK);
   }
   function openZoom() {
+    flushRender();
     $('#zoomBody').innerHTML = `<div class="sheets">${$('#sheets').innerHTML}</div>`;
     zoomK = 1;
     openModal('#mZoom');
@@ -818,10 +958,20 @@
   /* ================= Gắn sự kiện ================= */
   function debounce(fn, ms) {
     let t = null;
-    return (...a) => {
+    let args = null;
+    const d = (...a) => {
+      args = a;
       clearTimeout(t);
-      t = setTimeout(() => fn(...a), ms);
+      t = setTimeout(() => { t = null; fn(...args); }, ms);
     };
+    // Chạy ngay việc đang chờ (VD: bấm In ngay sau khi gõ)
+    d.flush = () => {
+      if (t === null) return;
+      clearTimeout(t);
+      t = null;
+      fn(...args);
+    };
+    return d;
   }
 
   function bind() {
@@ -992,7 +1142,8 @@
       const b = e.target.closest('[data-theme]');
       if (!b) return;
       state.theme = b.dataset.theme;
-      state.colors = { title: null, body: null };
+      const t = TPL[state.tpl];
+      state.colors = { title: null, body: null, to: null, msg: null, sign: null, ...(state.theme === t.theme ? t.colors || {} : {}) };
       commit();
     });
     document.addEventListener('click', (e) => {
@@ -1036,6 +1187,7 @@
 
     // In
     $('#btnPrint').addEventListener('click', () => {
+      flushRender();
       const r = last || buildSheets(state);
       $('#printSummary').textContent = `Sẽ in ${r.nSheets} tờ A4, tổng ${r.total} thiệp (mỗi thiệp ${cm(r.g.cw)} × ${cm(r.g.ch)} cm).`;
       openModal('#mPrint');
@@ -1076,7 +1228,12 @@
     if (window.ResizeObserver) new ResizeObserver(onResize).observe($('#preview'));
 
     // Trước khi in (kể cả bấm Ctrl+P), đảm bảo chữ đã vừa thiệp
-    window.addEventListener('beforeprint', () => finish($('#sheets')));
+    window.addEventListener('beforeprint', () => finish($('#sheets'), true));
+
+    // Lưu ngay khi rời ứng dụng (tránh mất chữ vừa gõ)
+    const saveNow = () => { commitSoon.flush(); saveState.flush(); };
+    window.addEventListener('pagehide', saveNow);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveNow(); });
   }
 
   /* ================= Khởi động ================= */
@@ -1091,6 +1248,8 @@
     const iOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const standalone = window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
     if (!iOS || standalone) $('#a2hsTip').hidden = true;
+    // Thiệp dùng đơn vị theo khung (cqmin) — cần iOS 16 / Chrome 105 trở lên
+    if (!(window.CSS && CSS.supports && CSS.supports('width', '1cqmin'))) $('#oldBanner').hidden = false;
   }
 
   function applyQuery() {

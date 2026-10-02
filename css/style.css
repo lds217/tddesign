@@ -103,6 +103,16 @@ button svg, .label svg, .chip svg, .big-choice svg, .btn-wide svg, .tabbar svg, 
 }
 #sheetInfo { min-width: 0; }
 .preview-bar .chip { flex: none; white-space: nowrap; }
+.warn {
+  flex: none;
+  margin: 6px 12px 0;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #FFF3BF;
+  color: #5C4400;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
 .preview {
   flex: 1; min-height: 0;
   overflow: auto;
@@ -338,6 +348,7 @@ h3 { margin: 0 0 6px; font-size: 20px; }
   display: flex; align-items: center; justify-content: center; text-align: center;
 }
 .swatch.custom { background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); overflow: hidden; }
+.swatch.custom[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--red); }
 .swatch.custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
 /* Khổ giấy */
@@ -474,6 +485,23 @@ h3 { margin: 0 0 6px; font-size: 20px; }
   .modal { align-items: center; }
   .modal-card { border-radius: 22px; padding-bottom: 22px; }
 }
+/* Điện thoại xoay ngang: xem trước bên trái, bảng chỉnh bên phải */
+@media (max-height: 520px) and (orientation: landscape) and (max-width: 899px) {
+  :root { --header-h: 50px; }
+  .main { flex-direction: row; }
+  .preview-pane { flex: 0 0 42%; height: auto; min-height: 0; border-bottom: 0; border-right: 1px solid var(--line); }
+  .panel { flex: 1; min-width: 0; }
+  .tabbar {
+    position: static; height: auto; padding: 4px 6px;
+    border-top: 0; border-bottom: 1px solid var(--line);
+  }
+  .tabbar button { min-height: 46px; font-size: 12px; }
+  .tabbar button svg { width: 22px; height: 22px; }
+  body.typing .tabbar { display: grid; }
+  .panel-scroll { padding-bottom: calc(24px + var(--safe-b)); }
+  .toast { bottom: 16px; }
+  .btn-print { min-height: 40px; }
+}
 @media (min-width: 1300px) {
   .panel { width: 500px; }
 }
@@ -585,4 +613,16 @@ h3 { margin: 0 0 6px; font-size: 20px; }
   .btn-ghost span { display: none; }
   .btn-ghost svg { width: 26px; height: 26px; }
   .brand { font-size: 19px; }
+}
+
+/* Điện thoại rất hẹp (iPhone SE đời đầu) */
+.brand span, .btn-print span { white-space: nowrap; }
+@media (max-width: 360px) {
+  .topbar { gap: 4px; padding-left: 10px; padding-right: 8px; }
+  .brand { font-size: 17px; gap: 6px; }
+  .brand svg { width: 28px; height: 18px; }
+  .btn-ghost { padding: 0 8px; }
+  .btn-print { padding: 0 14px; font-size: 16px; gap: 6px; }
+  .preview-bar { font-size: 12.5px; padding-left: 12px; }
+  .warn { font-size: 12.5px; margin: 4px 10px 0; padding: 6px 10px; }
 }
