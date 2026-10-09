@@ -14,7 +14,7 @@ No build step, no backend. All state is kept in `localStorage`.
 - Sheet layouts of 1, 2, 4, 6, 8, 10, 12 or 21 cards per A4, or 2–20 strips. Cards are rotated automatically when the card and slot orientations differ.
 - One card per recipient: a multi-line recipient field generates one card per line and paginates across sheets
 - Auto-fit: text shrinks until it fits the card
-- Saved designs, shop name and phone, and a logo, all persisted locally
+- Saved templates (“Mẫu của tôi”) shown first in the template grid, with update-in-place, save-as-new, rename and delete; the user's own phrases; shop name, phone and logo. All persisted locally, with `navigator.storage.persist()` requested on first save
 - Two print paths: native `window.print()` at A4 with zero margins, and a PDF fallback (html2canvas + jsPDF) that is shared through the Web Share API
 - PWA: web manifest, home-screen icons, and a network-first service worker
 
@@ -94,7 +94,8 @@ Each distinct card is rasterized upright with html2canvas, because html2canvas d
 | --- | --- |
 | `thiepyen.state.v1` | current design |
 | `thiepyen.shop.v1` | shop name, phone and logo |
-| `thiepyen.saved.v1` | saved designs |
+| `thiepyen.saved.v1` | saved templates (“Mẫu của tôi”): `{ id, name, ts, state }` |
+| `thiepyen.phrases.v1` | the user's own saved phrases (“Câu chúc của tôi”) |
 | `thiepyen.seen.v1` | whether the first-run dialog has been shown |
 
 ## Template schema

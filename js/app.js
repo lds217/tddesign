@@ -26,7 +26,7 @@
   const LAYOUT = Object.fromEntries(LAYOUTS.map((l) => [l.id, l]));
 
   /* ================= Lưu trữ trên máy ================= */
-  const KEY = { state: 'thiepyen.state.v1', shop: 'thiepyen.shop.v1', saved: 'thiepyen.saved.v1', seen: 'thiepyen.seen.v1' };
+  const KEY = { state: 'thiepyen.state.v1', shop: 'thiepyen.shop.v1', saved: 'thiepyen.saved.v1', phrases: 'thiepyen.phrases.v1', seen: 'thiepyen.seen.v1' };
   const store = {
     get(k, d) {
       try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; }
@@ -63,6 +63,7 @@
       deco: true,
       contour: t.contour || 'off',
       showShop: !!t.shop,
+      savedId: null, // mẫu của tôi đang mở (nếu có)
       text: { ...t.text },
       edited: { title: false, to: false, msg: false, sign: false },
       style,
@@ -89,6 +90,7 @@
     if (!LAYOUT[out.layout]) out.layout = base.layout;
     if (out.orient !== 'portrait' && out.orient !== 'landscape') out.orient = base.orient;
     if (!(out.contour in CONTOUR)) out.contour = base.contour;
+    out.savedId = typeof s.savedId === 'string' ? s.savedId : null;
     out.rows = Number.isFinite(+s.rows) ? Math.min(20, Math.max(2, Math.round(+s.rows))) : base.rows;
     out.text = { ...base.text };
     out.edited = { ...base.edited };
@@ -121,7 +123,17 @@
     if (!Array.isArray(list)) return [];
     return list
       .filter((it) => isObj(it) && isObj(it.state) && TPL[it.state.tpl])
-      .map((it) => ({ name: String(it.name || 'Mẫu').slice(0, 80), ts: Number(it.ts) || Date.now(), state: it.state }));
+      .map((it, i) => ({
+        id: typeof it.id === 'string' && it.id ? it.id : `s${Date.now().toString(36)}${i}`,
+        name: String(it.name || 'Mẫu').slice(0, 80),
+        ts: Number(it.ts) || Date.now(),
+        state: it.state,
+      }));
+  }
+
+  function cleanPhrases(list) {
+    if (!Array.isArray(list)) return [];
+    return list.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.slice(0, 1500)).slice(0, 200);
   }
 
   function cleanShop(o) {
@@ -144,6 +156,18 @@
   let state = loadState();
   let shop = cleanShop(store.get(KEY.shop, null));
   let saved = cleanSaved(store.get(KEY.saved, []));
+  let myPhrases = cleanPhrases(store.get(KEY.phrases, []));
+  const newId = () => `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+  // Xin trình duyệt giữ dữ liệu lâu dài (không tự xóa khi máy đầy bộ nhớ)
+  let askedPersist = false;
+  function askPersist() {
+    if (askedPersist) return;
+    askedPersist = true;
+    try {
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    } catch (e) { /* bỏ qua */ }
+  }
   let part = 'title'; // phần đang chỉnh kiểu chữ
 
   const saveState = debounce(() => store.set(KEY.state, state), 300);
@@ -512,8 +536,11 @@
     markTemplates();
   }
 
+  const activeSaved = () => (state.savedId && saved.find((x) => x.id === state.savedId)) || null;
   function markTemplates() {
-    $$('.tpl').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tpl === state.tpl)));
+    const mine = activeSaved();
+    $$('.tpl[data-tpl]').forEach((b) => b.setAttribute('aria-pressed', String(!mine && b.dataset.tpl === state.tpl)));
+    $$('.tpl[data-saved]').forEach((b) => b.setAttribute('aria-pressed', String(!!mine && b.dataset.saved === mine.id)));
   }
 
   function fmtDate(ts) {
@@ -523,13 +550,96 @@
     } catch (e) { return ''; }
   }
 
+  const savedState = (it) => merge(fromTemplate(it.state.tpl), it.state);
+
   function buildSaved() {
     $('#savedEmpty').hidden = saved.length > 0;
-    $('#savedList').innerHTML = saved.map((it, i) => {
-      const st = merge(fromTemplate(it.state.tpl), it.state);
-      return `<div class="saved-item"><button type="button" class="saved-open" data-load="${i}"><span class="thumb-wrap">${thumbHTML(st, 52, 62)}</span><span style="min-width:0"><span class="saved-name">${esc(it.name)}</span><br><span class="saved-date">Lưu ngày ${fmtDate(it.ts)}</span></span></button><button type="button" class="saved-del" data-del="${i}" aria-label="Xóa mẫu ${esc(it.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l1 13h9l1-13M10 10.5v6M14 10.5v6"/></svg></button></div>`;
-    }).join('');
+    $('#savedList').innerHTML = saved.map((it) =>
+      `<div class="tpl mine" data-saved="${esc(it.id)}" aria-pressed="false"><button type="button" class="tpl-open" data-load="${esc(it.id)}" aria-label="Mở mẫu ${esc(it.name)}"><div class="tpl-thumb">${thumbHTML(savedState(it), 90, 114)}</div><span class="tpl-name">${esc(it.name)}</span></button><button type="button" class="tpl-more" data-more="${esc(it.id)}" aria-label="Tùy chọn cho mẫu ${esc(it.name)}">⋯</button></div>`
+    ).join('');
     finish($('#savedList'));
+    markTemplates();
+  }
+
+  function storeSaved() {
+    if (store.set(KEY.saved, saved)) {
+      askPersist();
+      return true;
+    }
+    return false;
+  }
+
+  function openSaved(it) {
+    const prev = clone(state);
+    state = savedState(clone(it));
+    state.savedId = it.id;
+    commit();
+    toast(`Đã mở “${it.name}”`, () => { state = prev; commit(); });
+  }
+
+  // Hộp lưu mẫu: lưu đè mẫu đang mở, hoặc lưu thành mẫu mới
+  function openSaveDialog() {
+    flushRender();
+    const mine = activeSaved();
+    const def = mine ? mine.name : (state.text.title || state.text.msg || TPL[state.tpl].name).replace(/\s+/g, ' ').trim().slice(0, 40);
+    $('#saveName').value = def;
+    $('#saveThumb').innerHTML = thumbHTML(state, 84, 108);
+    finish($('#saveThumb'), true);
+    const over = $('#btnSaveOver');
+    over.hidden = !mine;
+    if (mine) over.textContent = `Cập nhật mẫu “${mine.name}”`;
+    $('#btnSaveNew').classList.toggle('primary', !mine);
+    $('#btnSaveNew').textContent = mine ? 'Lưu thành mẫu mới (giữ mẫu cũ)' : 'Lưu mẫu';
+    openModal('#mSave');
+  }
+
+  function doSave(overwrite) {
+    const name = $('#saveName').value.replace(/\s+/g, ' ').trim() || TPL[state.tpl].name;
+    const snap = clone(state);
+    delete snap.savedId;
+    const mine = overwrite ? activeSaved() : null;
+    const backup = clone(saved);
+    let item;
+    if (mine) {
+      mine.name = name;
+      mine.ts = Date.now();
+      mine.state = snap;
+      item = mine;
+      saved = [mine, ...saved.filter((x) => x !== mine)];
+    } else {
+      item = { id: newId(), name, ts: Date.now(), state: snap };
+      saved.unshift(item);
+    }
+    if (!storeSaved()) {
+      saved = backup;
+      toast('Bộ nhớ máy đầy, hãy xóa bớt mẫu cũ hoặc logo.');
+      return;
+    }
+    state.savedId = item.id;
+    saveState();
+    closeModal($('#mSave'));
+    buildSaved();
+    toast(mine ? `Đã cập nhật “${name}”` : `Đã lưu “${name}” vào Mẫu của tôi`);
+  }
+
+  let menuId = null;
+  function openSavedMenu(id) {
+    const it = saved.find((x) => x.id === id);
+    if (!it) return;
+    menuId = id;
+    $('#mSavedTitle').textContent = it.name;
+    $('#mSavedDate').textContent = `Lưu ngày ${fmtDate(it.ts)}`;
+    openModal('#mSaved');
+  }
+
+  function buildPhrases() {
+    const mine = myPhrases.length
+      ? '<h4>Câu chúc của tôi</h4>' + myPhrases.map((p, i) =>
+        `<div class="phrase-row"><button type="button" class="phrase" data-phrase="${esc(p)}">${esc(p)}</button><button type="button" class="phrase-del" data-delphrase="${i}" aria-label="Xóa câu này">×</button></div>`).join('')
+      : '';
+    $('#phraseList').innerHTML = mine + PHRASES.map((g) =>
+      `<h4>${esc(g.group)}</h4>` + g.items.map((p) => `<button type="button" class="phrase" data-phrase="${esc(p)}">${esc(p)}</button>`).join('')
+    ).join('');
   }
 
   function buildFonts() {
@@ -584,9 +694,7 @@
 
   function buildChips() {
     $('#titleChips').innerHTML = TITLE_PRESETS.map((t) => `<button type="button" class="chip" data-title="${esc(t)}">${esc(t)}</button>`).join('');
-    $('#phraseList').innerHTML = PHRASES.map((g) =>
-      `<h4>${esc(g.group)}</h4>` + g.items.map((p) => `<button type="button" class="phrase" data-phrase="${esc(p)}">${esc(p)}</button>`).join('')
-    ).join('');
+    buildPhrases();
   }
 
   function setPressed(sel, fn) {
@@ -701,6 +809,7 @@
   /* ================= Hộp thoại & thông báo ================= */
   function openModal(sel) {
     const m = $(sel);
+    hideToast();
     m.hidden = false;
     const focusable = m.querySelector('.modal-x, [data-close]');
     if (focusable) setTimeout(() => focusable.focus({ preventScroll: true }), 30);
@@ -721,6 +830,8 @@
     const b = $('#toastAction');
     b.hidden = !undo;
     b.onclick = () => { if (undo) undo(); hideToast(); };
+    // Khi đang mở hộp thoại, hiện thông báo ở trên cùng để không che nút
+    $('#toast').classList.toggle('top', $$('.modal').some((m) => !m.hidden));
     $('#toast').hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(hideToast, undo ? 6000 : 2600);
@@ -982,7 +1093,7 @@
     $('#tplGrid').addEventListener('click', (e) => {
       const b = e.target.closest('.tpl');
       if (!b) return;
-      if (b.dataset.tpl === state.tpl) {
+      if (b.dataset.tpl === state.tpl && !activeSaved()) {
         toast('Đang dùng mẫu này. Sang mục Chữ để sửa lời.');
         return;
       }
@@ -994,36 +1105,67 @@
 
     // Mẫu của tôi
     $('#savedList').addEventListener('click', (e) => {
+      const more = e.target.closest('[data-more]');
       const open = e.target.closest('[data-load]');
-      const del = e.target.closest('[data-del]');
-      if (open) {
-        const it = saved[+open.dataset.load];
-        if (!it) return;
-        const prev = clone(state);
-        state = merge(fromTemplate(it.state.tpl), clone(it.state));
-        commit();
-        toast(`Đã mở “${it.name}”`, () => { state = prev; commit(); });
-      } else if (del) {
-        const i = +del.dataset.del;
-        const it = saved[i];
-        if (!it || !window.confirm(`Xóa mẫu “${it.name}”?`)) return;
-        saved.splice(i, 1);
-        store.set(KEY.saved, saved);
-        buildSaved();
+      if (more) openSavedMenu(more.dataset.more);
+      else if (open) {
+        const it = saved.find((x) => x.id === open.dataset.load);
+        if (it) openSaved(it);
       }
     });
-    $('#btnSave').addEventListener('click', () => {
-      const def = (state.text.title || TPL[state.tpl].name).replace(/\s+/g, ' ').trim();
-      const name = window.prompt('Đặt tên cho mẫu này:', def);
-      if (name === null) return;
-      saved.unshift({ name: name.trim() || def, ts: Date.now(), state: clone(state) });
-      if (!store.set(KEY.saved, saved)) {
-        saved.shift();
-        toast('Bộ nhớ đầy, hãy xóa bớt mẫu cũ.');
+    $$('[data-save-open]').forEach((b) => b.addEventListener('click', () => {
+      closeModal($('#mPrint'));
+      openSaveDialog();
+    }));
+    $('#btnSaveNew').addEventListener('click', () => doSave(false));
+    $('#btnSaveOver').addEventListener('click', () => doSave(true));
+    $('#saveName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); doSave(!!activeSaved()); }
+    });
+    $('#btnSavedOpen').addEventListener('click', () => {
+      const it = saved.find((x) => x.id === menuId);
+      closeModal($('#mSaved'));
+      if (it) openSaved(it);
+    });
+    $('#btnSavedRename').addEventListener('click', () => {
+      const it = saved.find((x) => x.id === menuId);
+      if (!it) return;
+      const name = window.prompt('Tên mới cho mẫu:', it.name);
+      if (name === null || !name.trim()) return;
+      it.name = name.replace(/\s+/g, ' ').trim().slice(0, 60);
+      storeSaved();
+      $('#mSavedTitle').textContent = it.name;
+      buildSaved();
+      toast('Đã đổi tên');
+    });
+    $('#btnSavedDelete').addEventListener('click', () => {
+      const i = saved.findIndex((x) => x.id === menuId);
+      if (i < 0) return;
+      const it = saved[i];
+      if (!window.confirm(`Xóa mẫu “${it.name}”? Không lấy lại được.`)) return;
+      saved.splice(i, 1);
+      storeSaved();
+      if (state.savedId === it.id) { state.savedId = null; saveState(); }
+      closeModal($('#mSaved'));
+      buildSaved();
+      toast(`Đã xóa “${it.name}”`);
+    });
+
+    // Câu chúc của tôi
+    $('#btnSavePhrase').addEventListener('click', () => {
+      commitSoon.flush();
+      const msg = String(state.text.msg || '').trim();
+      if (!msg) { toast('Chưa có lời nhắn để lưu.'); return; }
+      if (myPhrases.includes(msg)) { toast('Câu này đã có trong “Câu chúc của tôi”.'); return; }
+      myPhrases.unshift(msg);
+      if (!store.set(KEY.phrases, myPhrases)) {
+        myPhrases.shift();
+        toast('Bộ nhớ máy đầy.');
         return;
       }
-      buildSaved();
-      toast('Đã lưu vào “Mẫu của tôi”');
+      askPersist();
+      buildPhrases();
+      toast('Đã lưu vào “Câu chúc của tôi”');
     });
 
     // Ô chữ
@@ -1046,6 +1188,15 @@
     });
     $('#btnPhrases').addEventListener('click', () => openModal('#mPhrases'));
     $('#phraseList').addEventListener('click', (e) => {
+      const del = e.target.closest('[data-delphrase]');
+      if (del) {
+        const i = +del.dataset.delphrase;
+        if (!window.confirm('Xóa câu chúc này?')) return;
+        myPhrases.splice(i, 1);
+        store.set(KEY.phrases, myPhrases);
+        buildPhrases();
+        return;
+      }
       const b = e.target.closest('[data-phrase]');
       if (!b) return;
       const prev = state.text.msg;
