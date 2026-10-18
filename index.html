@@ -96,23 +96,28 @@
 
           <h2>Mẫu có sẵn</h2>
           <p class="hint">Bấm vào một mẫu. Sau đó sang mục <b>Chữ</b> để sửa lời.</p>
-          <div class="tpl-grid" id="tplGrid"></div>
+          <div id="tplGrid"></div>
         </div>
 
         <!-- ============ CHỮ ============ -->
         <div class="tab" data-tab="chu" hidden>
+          <div class="fgroup" data-fgroup="title">
           <label class="field">
             <span class="label" id="lb-title">Tiêu đề</span>
             <input type="text" id="fTitle" data-field="title" autocomplete="off" placeholder="VD: Lời Cảm Ơn">
           </label>
           <div class="chips-scroll" id="titleChips"></div>
+          </div>
 
+          <div class="fgroup" data-fgroup="to">
           <label class="field">
             <span class="label" id="lb-to">Gửi đến</span>
             <textarea id="fTo" data-field="to" rows="2" autocomplete="off" placeholder="VD: Kính gửi Cô Lan"></textarea>
           </label>
           <p class="hint tip">💡 Mỗi người viết <b>một dòng</b> → mỗi người được <b>một thiệp riêng</b>. Để trống nếu không cần. <span id="toCount"></span></p>
+          </div>
 
+          <div class="fgroup" data-fgroup="msg">
           <label class="field">
             <span class="label" id="lb-msg">Lời nhắn</span>
             <textarea id="fMsg" data-field="msg" rows="5" autocomplete="off" placeholder="Gõ lời chúc ở đây"></textarea>
@@ -122,11 +127,15 @@
             Chọn câu chúc có sẵn
           </button>
           <button class="link-btn" id="btnSavePhrase" type="button">＋ Lưu lời nhắn này vào “Câu chúc của tôi”</button>
+          </div>
 
+          <div class="fgroup" data-fgroup="sign">
           <label class="field">
             <span class="label" id="lb-sign">Ký tên / Người gửi</span>
             <textarea id="fSign" data-field="sign" rows="2" autocomplete="off" placeholder="VD: Trân trọng cảm ơn!"></textarea>
           </label>
+          </div>
+          <div id="fieldsEnd" hidden></div>
 
           <label class="switch-row">
             <span>In tên tiệm &amp; số điện thoại ở cuối thiệp</span>
@@ -188,6 +197,15 @@
         <div class="tab" data-tab="mau-sac" hidden>
           <h2>Màu thiệp</h2>
           <div class="theme-grid" id="themeGrid"></div>
+
+          <h2>Hoa ẩn dưới nền</h2>
+          <p class="hint">Hoa in mờ phía sau, chữ viết đè lên trên.</p>
+          <div class="theme-grid" id="patGrid"></div>
+          <div class="segment" id="patLevel" role="group" aria-label="Độ đậm của hoa nền" style="margin-top:12px">
+            <button type="button" data-lv="1" aria-pressed="false">Nhạt</button>
+            <button type="button" data-lv="2" aria-pressed="false">Vừa</button>
+            <button type="button" data-lv="3" aria-pressed="false">Đậm</button>
+          </div>
 
           <div id="colorRows"></div>
 

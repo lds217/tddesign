@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const { FONTS, THEMES, TEXT_COLORS, TEMPLATES, TITLE_PRESETS, PHRASES } = window.TD;
+  const { FONTS, THEMES, TEXT_COLORS, TEMPLATES, TITLE_PRESETS, PHRASES, PATTERNS, GROUPS } = window.TD;
   const O = window.Orn;
   const TPL = Object.fromEntries(TEMPLATES.map((t) => [t.id, t]));
   const $ = (s, r = document) => r.querySelector(s);
@@ -38,11 +38,14 @@
 
   const DEFAULT_STYLE = { font: 'Lora', size: 1, bold: false, italic: false, upper: false, align: 'center' };
   const CONTOUR = { off: 0, sat: 0.03, vua: 0.05, rong: 0.08 }; // khoảng cách viền cắt (× cạnh ngắn)
+  const PAT_IDS = new Set(PATTERNS.map(([k]) => k));
+  const PAT_OPACITY = { 1: 0.16, 2: 0.26, 3: 0.4 }; // độ đậm hoa nền: nhạt / vừa / đậm
+  const orderOf = (t) => t.order || FIELDS;
 
   // Các phần chỉnh kiểu chữ riêng: mẫu thường có 2 phần, mẫu "nhiều dòng" mỗi dòng một phần
   function partsFor(t) {
     return t.lines
-      ? [['title', 'Dòng 1'], ['to', 'Dòng 2'], ['msg', 'Dòng 3'], ['sign', 'Dòng 4']]
+      ? orderOf(t).map((k, i) => [k, `Dòng ${i + 1}`])
       : [['title', 'Tiêu đề'], ['body', 'Lời nhắn & tên']];
   }
 
@@ -62,6 +65,8 @@
       cut: prev ? prev.cut : true,
       deco: true,
       contour: t.contour || 'off',
+      bgPat: t.bgPat || 'none',
+      bgLevel: 2,
       showShop: !!t.shop,
       savedId: null, // mẫu của tôi đang mở (nếu có)
       text: { ...t.text },
@@ -90,6 +95,8 @@
     if (!LAYOUT[out.layout]) out.layout = base.layout;
     if (out.orient !== 'portrait' && out.orient !== 'landscape') out.orient = base.orient;
     if (!(out.contour in CONTOUR)) out.contour = base.contour;
+    out.bgPat = PAT_IDS.has(s.bgPat) ? s.bgPat : base.bgPat;
+    out.bgLevel = [1, 2, 3].includes(s.bgLevel) ? s.bgLevel : base.bgLevel;
     out.savedId = typeof s.savedId === 'string' ? s.savedId : null;
     out.rows = Number.isFinite(+s.rows) ? Math.min(20, Math.max(2, Math.round(+s.rows))) : base.rows;
     out.text = { ...base.text };
@@ -249,8 +256,8 @@
     const fs = fieldStyles(st, t, th);
     const align = t.lines ? 'center' : st.style.body.align;
     const vars = {
-      '--bg': th.bg,
-      '--bg2': th.bg2,
+      '--bg': t.paper || th.bg,
+      '--bg2': t.paper || th.bg2,
       '--c-title': fs.title.color,
       '--c-body': t.lines ? fs.msg.color : st.colors.body || th.text,
       '--s-shop': sz.shop,
@@ -279,11 +286,13 @@
     const withShop = st.showShop && (shop.name || shop.phone || shop.extra);
     let stack = '';
     if (st.showShop && shop.logo && shop.showLogo) stack += `<img class="t-logo" src="${shop.logo}" alt="">`;
-    if (tx.title) stack += `<div class="t-title">${esc(tx.title)}</div>`;
-    if (tx.title && t.divider && deco) stack += O.divider(th.frame);
-    if (to) stack += `<div class="t-to ${cls('to')}">${esc(to)}</div>`;
-    if (tx.msg) stack += `<div class="t-msg">${esc(tx.msg)}</div>`;
-    if (tx.sign) stack += `<div class="t-sign al-auto ${cls('sign')}">${esc(tx.sign)}</div>`;
+    const piece = {
+      title: () => (tx.title ? `<div class="t-title">${esc(tx.title)}</div>` + (t.divider && deco ? O.divider(th.frame) : '') : ''),
+      to: () => (to ? `<div class="t-to ${cls('to')}">${esc(to)}</div>` : ''),
+      msg: () => (tx.msg ? `<div class="t-msg">${esc(tx.msg)}</div>` : ''),
+      sign: () => (tx.sign ? `<div class="t-sign al-auto ${cls('sign')}">${esc(tx.sign)}</div>` : ''),
+    };
+    orderOf(t).forEach((k) => (stack += piece[k]()));
 
     let shopHTML = '';
     if (withShop) {
@@ -292,7 +301,9 @@
     }
 
     const box = `viewBox="0 0 ${r2(w)} ${r2(h)}" width="${r2(w)}mm" height="${r2(h)}mm" preserveAspectRatio="none" aria-hidden="true"`;
-    const svg = deco ? `<svg class="deco" ${box}>${t.deco(w, h, Math.min(w, h), th)}</svg>` : '';
+    const m = Math.min(w, h);
+    const pat = st.bgPat !== 'none' ? O.pattern(st.bgPat, w, h, m, t.patColor || th.frame, PAT_OPACITY[st.bgLevel] || 0.26) : '';
+    const svg = (pat ? `<svg class="deco" ${box}>${pat}</svg>` : '') + (deco ? `<svg class="deco" ${box}>${t.deco(w, h, m, th)}</svg>` : '');
     const ct = contourMm(st, w, h);
     const ctColor = luminance(fs.title.color) > 0.72 ? '#8C8C8C' : fs.title.color;
     const ctSvg = ct ? `<svg class="contour" ${box}><path d="" fill="none" stroke="${ctColor}" stroke-width="0.25" stroke-linejoin="round"/></svg>` : '';
@@ -529,9 +540,17 @@
 
   /* ================= Giao diện ================= */
   function buildTemplates() {
-    $('#tplGrid').innerHTML = TEMPLATES.map((t) =>
-      `<button type="button" class="tpl" data-tpl="${t.id}" aria-pressed="false"><div class="tpl-thumb">${thumbHTML(fromTemplate(t.id), 90, 114)}</div><span class="tpl-name">${esc(t.name)}</span></button>`
-    ).join('');
+    const month = new Date().getMonth() + 1;
+    const groups = [...GROUPS].sort((a, b) => (b.months || []).includes(month) - (a.months || []).includes(month));
+    const tile = (t) =>
+      `<button type="button" class="tpl" data-tpl="${t.id}" aria-pressed="false"><div class="tpl-thumb">${thumbHTML(fromTemplate(t.id), 90, 114)}</div><span class="tpl-name">${esc(t.name)}</span></button>`;
+    $('#tplGrid').innerHTML = groups.map((g) => {
+      const list = TEMPLATES.filter((t) => t.group === g.id);
+      return list.length ? `<h3 class="tpl-group">${esc(g.name)}</h3><div class="tpl-grid">${list.map(tile).join('')}</div>` : '';
+    }).join('') + (() => {
+      const rest = TEMPLATES.filter((t) => !GROUPS.some((g) => g.id === t.group));
+      return rest.length ? `<h3 class="tpl-group">Mẫu khác</h3><div class="tpl-grid">${rest.map(tile).join('')}</div>` : '';
+    })();
     finish($('#tplGrid'));
     markTemplates();
   }
@@ -654,6 +673,20 @@
     ).join('');
   }
 
+  let patTheme = null;
+  function buildPatterns() {
+    const th = THEMES[state.theme];
+    const t = TPL[state.tpl];
+    const key = th.id + '|' + (t.patColor || '');
+    if (patTheme === key) return;
+    patTheme = key;
+    const c = t.patColor || th.frame;
+    $('#patGrid').innerHTML = PATTERNS.map(([id, name]) => {
+      const art = id === 'none' ? '' : O.pattern(id, 60, 80, 60, c, id === 'nhi' ? 0.4 : 0.6);
+      return `<button type="button" class="theme-btn pat-btn" data-pat="${id}" aria-pressed="false"><svg class="pat-thumb" viewBox="0 0 60 80" style="background:${th.bg}">${art}</svg>${name}</button>`;
+    }).join('');
+  }
+
   function swatchesHTML(which) {
     return TEXT_COLORS.map((c) =>
       c.c
@@ -675,13 +708,22 @@
     $('#colorRows').innerHTML = parts.map(([k, label]) =>
       `<h2>Màu chữ ${t.lines ? label : label.toLowerCase()}</h2><div class="swatches" data-which="${k}">${swatchesHTML(k)}</div>`
     ).join('');
-    const L = t.lines
-      ? { title: ['Dòng 1', 'VD: CÔNG TY'], to: ['Dòng 2 (tên)', 'VD: Chị Trà'], msg: ['Dòng 3', 'VD: Kính Biếu'], sign: ['Dòng 4 (không bắt buộc)', ''] }
-      : { title: ['Tiêu đề', 'VD: Lời Cảm Ơn'], to: ['Gửi đến', 'VD: Kính gửi Cô Lan'], msg: ['Lời nhắn', 'Gõ lời chúc ở đây'], sign: ['Ký tên / Người gửi', 'VD: Trân trọng cảm ơn!'] };
+    const L = {};
+    if (t.lines) {
+      orderOf(t).forEach((k, i) => {
+        const note = k === 'to' ? ' (tên)' : !t.text[k] ? ' (không bắt buộc)' : '';
+        L[k] = [`Dòng ${i + 1}${note}`, t.text[k] ? `VD: ${t.text[k]}` : ''];
+      });
+    } else {
+      Object.assign(L, { title: ['Tiêu đề', 'VD: Lời Cảm Ơn'], to: ['Gửi đến', 'VD: Kính gửi Cô Lan'], msg: ['Lời nhắn', 'Gõ lời chúc ở đây'], sign: ['Ký tên / Người gửi', 'VD: Trân trọng cảm ơn!'] });
+    }
     FIELDS.forEach((f) => {
       $(`#lb-${f}`).textContent = L[f][0];
       $(`[data-field="${f}"]`).placeholder = L[f][1];
     });
+    // Sắp các ô chữ theo đúng thứ tự dòng trên thiệp
+    const anchor = $('#fieldsEnd');
+    orderOf(t).forEach((k) => anchor.parentNode.insertBefore($(`[data-fgroup="${k}"]`), anchor));
   }
 
   function buildLayouts() {
@@ -730,7 +772,11 @@
     $('#swPart').dataset.which = part;
     setPressed('#alignToggles .tog', (b) => b.dataset.align === state.style.body.align);
 
-    setPressed('.theme-btn', (b) => b.dataset.theme === state.theme);
+    setPressed('.theme-btn[data-theme]', (b) => b.dataset.theme === state.theme);
+    buildPatterns();
+    setPressed('#patGrid [data-pat]', (b) => b.dataset.pat === state.bgPat);
+    setPressed('#patLevel [data-lv]', (b) => +b.dataset.lv === state.bgLevel);
+    $('#patLevel').hidden = state.bgPat === 'none';
     $$('.swatches[data-which]').forEach((row) => {
       const cur = state.colors[row.dataset.which] || null;
       let hit = false;
@@ -1308,6 +1354,18 @@
       if (!row) return;
       state.colors[row.dataset.which] = e.target.value;
       commitSoon();
+    });
+    $('#patGrid').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-pat]');
+      if (!b) return;
+      state.bgPat = b.dataset.pat;
+      commit();
+    });
+    $('#patLevel').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-lv]');
+      if (!b) return;
+      state.bgLevel = +b.dataset.lv;
+      commit();
     });
     $('#contourSeg').addEventListener('click', (e) => {
       const b = e.target.closest('[data-ct]');

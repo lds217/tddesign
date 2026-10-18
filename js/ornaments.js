@@ -256,10 +256,149 @@
     return o;
   }
 
+  /* ---------- Hoa hồng nhìn từ trên (một màu, dùng làm hoa nền mờ) ----------
+   * Các cánh hình lưỡi liềm xếp xoắn ốc theo góc vàng 137.5°, cánh ngoài to dần. */
+  function rose(cx, cy, r, c, rot = 0) {
+    const N = 15;
+    const p = (ang, rad) => `${f(Math.cos(ang) * rad)} ${f(Math.sin(ang) * rad)}`;
+    let o = `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${rot})" fill="${c}" stroke="${c}" stroke-linejoin="round">`;
+    for (let k = N; k >= 0; k--) {
+      const t = k / N;
+      const R = r * (0.12 + 0.88 * Math.pow(t, 0.8));
+      const a0 = (k * 137.5 * Math.PI) / 180;
+      const span = 1.1 + 0.9 * t;
+      o += `<path d="M${p(a0 - span / 2, R * 0.62)}C${p(a0 - span * 0.35, R * 1.05)} ${p(a0 + span * 0.35, R * 1.05)} ${p(a0 + span / 2, R * 0.62)}Q${p(a0, R * 0.5)} ${p(a0 - span / 2, R * 0.62)}Z" fill-opacity="${f(0.18 + 0.3 * (1 - t))}" stroke-width="${f(r * 0.025)}"/>`;
+    }
+    o += `<path d="M0 0C${f(r * 0.08)} ${f(-r * 0.1)} ${f(r * 0.16)} 0 ${f(r * 0.08)} ${f(r * 0.1)}" fill="none" stroke-width="${f(r * 0.03)}"/>`;
+    return o + '</g>';
+  }
+
+  // Lá cây (gốc tại (x, y), dài len, góc deg)
+  function leaf(x, y, len, deg, c) {
+    const L = len;
+    return `<g transform="translate(${f(x)} ${f(y)}) rotate(${deg})" fill="${c}" stroke="${c}"><path d="M0 0C${f(L * 0.3)} ${f(-L * 0.24)} ${f(L * 0.72)} ${f(-L * 0.22)} ${f(L)} 0C${f(L * 0.72)} ${f(L * 0.22)} ${f(L * 0.3)} ${f(L * 0.24)} 0 0Z" fill-opacity=".45" stroke-width="${f(L * 0.012)}"/><path d="M0 0L${f(L * 0.9)} 0" fill="none" stroke-width="${f(L * 0.02)}"/></g>`;
+  }
+
+  // Hoa nhỏ 5 cánh một màu
+  function floret(cx, cy, r, c, rot = 0) {
+    let o = `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${rot})" fill="${c}">`;
+    for (let i = 0; i < 5; i++) {
+      const a = ((i * 72 - 90) * Math.PI) / 180;
+      o += `<ellipse cx="${f(Math.cos(a) * r * 0.55)}" cy="${f(Math.sin(a) * r * 0.55)}" rx="${f(r * 0.45)}" ry="${f(r * 0.38)}" transform="rotate(${i * 72} ${f(Math.cos(a) * r * 0.55)} ${f(Math.sin(a) * r * 0.55)})" fill-opacity=".5"/>`;
+    }
+    return o + `<circle r="${f(r * 0.24)}"/></g>`;
+  }
+
+  // Sen một màu cho hoa nền
+  function lotusMono(cx, baseY, width, c) {
+    const s = width / 120;
+    let o = `<g transform="translate(${f(cx)} ${f(baseY)}) scale(${f(s)}) translate(-60 -80)" fill="${c}" stroke="${c}" stroke-width="1.2" stroke-linejoin="round">`;
+    ['outerL', 'outerR', 'sideL', 'sideR', 'center'].forEach((k, i) => (o += `<path d="${LOTUS[k]}" fill-opacity="${i < 2 ? 0.4 : i < 4 ? 0.5 : 0.6}"/>`));
+    o += `<path d="${LOTUS.veins}" fill="none"/>`;
+    return o + '</g>';
+  }
+  function lotusPad(cx, cy, rx, c, rot = 0) {
+    const ry = rx * 0.42;
+    return `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${rot})" fill="${c}" stroke="${c}"><path d="M0 0L${f(rx * 0.95)} ${f(-ry * 0.3)}A${f(rx)} ${f(ry)} 0 1 1 ${f(rx * 0.95)} ${f(ry * 0.3)}Z" fill-opacity=".3" stroke-width="${f(rx * 0.015)}"/><path d="M0 0L${f(-rx * 0.7)} ${f(-ry * 0.5)}M0 0L${f(-rx * 0.8)} ${f(ry * 0.3)}M0 0L${f(-rx * 0.1)} ${f(ry * 0.85)}" fill="none" stroke-width="${f(rx * 0.012)}"/></g>`;
+  }
+
+  // Số ngẫu nhiên cố định theo vị trí (để hoa nhí lần nào vẽ cũng giống nhau)
+  const rnd = (i, j, k) => {
+    const x = Math.sin(i * 127.1 + j * 311.7 + k * 74.7) * 43758.5453;
+    return x - Math.floor(x);
+  };
+
+  /* Hoa ẩn dưới nền thiệp. kind: hong | sen | dao | nhi. op: độ đậm (0..1) */
+  function pattern(kind, w, h, m, c, op) {
+    let o = '';
+    if (kind === 'hong') {
+      o += leaf(w - m * 0.3, h - m * 0.17, m * 0.2, -150, c) + leaf(w - m * 0.03, h - m * 0.33, m * 0.17, -100, c);
+      o += rose(w - m * 0.12, h - m * 0.1, m * 0.27, c, 15) + rose(w - m * 0.45, h - m * 0.02, m * 0.17, c, -20);
+      o += leaf(m * 0.17, m * 0.04, m * 0.17, 15, c) + leaf(m * 0.03, m * 0.2, m * 0.15, 75, c);
+      o += rose(m * 0.07, m * 0.07, m * 0.21, c, 40);
+      o += floret(w * 0.78, m * 0.1, m * 0.03, c, 10) + floret(w * 0.12, h - m * 0.28, m * 0.028, c, 30) + floret(w * 0.5, h - m * 0.06, m * 0.022, c);
+    } else if (kind === 'sen') {
+      o += lotusPad(w - m * 0.62, h - m * 0.02, m * 0.24, c, -8) + lotusPad(w - m * 0.04, h - m * 0.1, m * 0.2, c, 200);
+      o += lotusMono(w - m * 0.3, h + m * 0.01, m * 0.68, c);
+      o += lotusMono(m * 0.2, m * 0.34, m * 0.34, c) + lotusPad(m * 0.08, m * 0.36, m * 0.15, c, 10);
+    } else if (kind === 'dao') {
+      o += O_branch(w + m * 0.02, m * 0.03, m * 0.75, 'dao', true);
+      o += `<g transform="rotate(180 ${f(w / 2)} ${f(h / 2)})">${O_branch(w + m * 0.02, m * 0.03, m * 0.55, 'dao', true)}</g>`;
+    } else if (kind === 'nhi') {
+      const sp = m * 0.15;
+      const nx = Math.ceil(w / sp) + 1;
+      const ny = Math.ceil(h / sp) + 1;
+      for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+          const x = (i + (j % 2 ? 0.5 : 0) + (rnd(i, j, 1) - 0.5) * 0.4) * sp;
+          const y = (j + (rnd(i, j, 2) - 0.5) * 0.4) * sp;
+          const r = m * (0.022 + rnd(i, j, 3) * 0.018);
+          o += rnd(i, j, 4) < 0.78 ? floret(x, y, r, c, rnd(i, j, 5) * 72) : leaf(x, y, r * 2.4, rnd(i, j, 6) * 360, c);
+        }
+      }
+    }
+    return o ? `<g opacity="${op}">${o}</g>` : '';
+  }
+  const O_branch = (...a) => branch(...a);
+
+  /* ---------- Hoa sứ (đại) trắng nhụy vàng — đường kính gốc 40 ---------- */
+  function plumeria(cx, cy, size, rot = 0) {
+    const s = size / 40;
+    const petal = 'M0 0C-6 -4 -9.5 -14 -4.2 -19C0 -22.5 7.2 -20.5 7 -13.2C6.8 -7.4 3 -3 0 0Z';
+    let o = `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${rot}) scale(${f(s)})" stroke-linejoin="round">`;
+    for (let i = 0; i < 5; i++) o += `<path d="${petal}" transform="rotate(${i * 72})" fill="#FFFBEC" stroke="#E7C873" stroke-width=".7"/>`;
+    for (let i = 0; i < 5; i++) o += `<path d="${petal}" transform="rotate(${i * 72}) scale(.5)" fill="#FFCB3D"/>`;
+    return o + '<circle r="1.8" fill="#F2A531"/></g>';
+  }
+
+  // Trái tim nét vẽ tay
+  function heart(cx, cy, size, c) {
+    const s = size / 20;
+    return `<path d="M10 18C3 12.5 .5 8.6 .8 5.2C1.1 2 3.4 .4 5.6 .6C7.6 .8 9.2 2.3 10 4.2C10.8 2.3 12.4 .8 14.4 .6C16.8 .4 19.2 2.2 19.2 5.3C19.2 8.8 16.4 12.6 10 18Z" fill="none" stroke="${c}" stroke-width="${f(1.3)}" stroke-linecap="round" stroke-linejoin="round" transform="translate(${f(cx - size / 2)} ${f(cy - size * 0.45)}) scale(${f(s)})"/>`;
+  }
+
+  // Đường viền lượn sóng (vỏ sò) quanh hình chữ nhật (x0,y0)-(x1,y1); d: độ rộng mỗi gợn, c: gợn ở góc
+  function scallopPath(x0, y0, x1, y1, d, c) {
+    const top = x1 - x0 - 2 * c;
+    const side = y1 - y0 - 2 * c;
+    const nT = Math.max(2, Math.round(top / d));
+    const nS = Math.max(1, Math.round(side / d));
+    const lt = top / nT;
+    const ls = side / nS;
+    const A = (L, x, y) => `A${f(L * 0.62)} ${f(L * 0.62)} 0 0 1 ${f(x)} ${f(y)}`;
+    const C = (x, y) => `A${f(c * 0.8)} ${f(c * 0.8)} 0 0 1 ${f(x)} ${f(y)}`;
+    let p = `M${f(x0 + c)} ${f(y0)}`;
+    for (let i = 1; i <= nT; i++) p += A(lt, x0 + c + i * lt, y0);
+    p += C(x1, y0 + c);
+    for (let i = 1; i <= nS; i++) p += A(ls, x1, y0 + c + i * ls);
+    p += C(x1 - c, y1);
+    for (let i = 1; i <= nT; i++) p += A(lt, x1 - c - i * lt, y1);
+    p += C(x0, y1 - c);
+    for (let i = 1; i <= nS; i++) p += A(ls, x0, y1 - c - i * ls);
+    return p + C(x0 + c, y0) + 'Z';
+  }
+
+  // Nhãn viền mây dễ thương: viền hồng lượn sóng, nền hồng nhạt, đường chỉ khâu trắng, hoa sứ ở góc, trái tim
+  function cuteLabel(w, h, m, border, fill, ink, opts = {}) {
+    const b = m * 0.085;
+    const d = m * 0.11;
+    const path = scallopPath(b, b, w - b, h - b, d, m * 0.07);
+    const i = b + m * 0.06;
+    let o = `<path d="${path}" fill="${fill}" stroke="${border}" stroke-width="${f(m * 0.032)}" stroke-linejoin="round"/>`;
+    o += `<rect x="${f(i)}" y="${f(i)}" width="${f(w - 2 * i)}" height="${f(h - 2 * i)}" rx="${f(m * 0.07)}" fill="none" stroke="#FFFFFF" stroke-width="${f(m * 0.011)}" stroke-dasharray="${f(m * 0.032)} ${f(m * 0.022)}" stroke-linecap="round"/>`;
+    if (opts.heart !== false) o += heart(w / 2, h - b - m * 0.15, m * 0.15, ink);
+    // Hoa nằm đè lên góc nhãn nhưng vẫn trong mép cắt của thiệp (bán kính hoa ≈ 0,56 × kích thước)
+    if (opts.flower !== false) o += plumeria(m * 0.145, m * 0.15, m * 0.25, -12) + plumeria(m * 0.36, m * 0.095, m * 0.15, 20);
+    return o;
+  }
+
   // Đường gạch hoa văn dưới tiêu đề (HTML inline, màu ghi rõ để in/PDF đúng màu)
   function divider(color) {
     return `<svg class="t-divider" viewBox="0 0 120 8" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M4 4H49M71 4H116" stroke="${color}" stroke-width=".8"/><path d="M60 .6L63.4 4L60 7.4L56.6 4Z" fill="${color}"/><circle cx="52.5" cy="4" r="1.2" fill="${color}"/><circle cx="67.5" cy="4" r="1.2" fill="${color}"/></svg>`;
   }
 
-  global.Orn = { swallow, flock, blossom, bud, branch, lantern, lotus, peach, cloud, drum, frameClassic, frameHoivan, frameLattice, frameSimple, divider, SWALLOW };
+  global.Orn = {
+    swallow, flock, blossom, bud, branch, lantern, lotus, peach, cloud, drum, rose, leaf, floret, plumeria, heart,
+    pattern, scallopPath, cuteLabel, frameClassic, frameHoivan, frameLattice, frameSimple, divider, SWALLOW,
+  };
 })(window);

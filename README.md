@@ -6,11 +6,12 @@ No build step, no backend. All state is kept in `localStorage`.
 
 ## Features
 
-- 13 templates with SVG artwork in a Vietnamese style (swallows, hoa mai and hoa đào, lotus, lanterns, a Đông Sơn drum medallion, hồi văn and lattice frames, tường vân clouds)
+- 18 templates with SVG artwork in a Vietnamese style (swallows, hoa mai and hoa đào, lotus, roses, frangipani, lanterns, a Đông Sơn drum medallion, hồi văn and lattice frames, tường vân clouds, scalloped labels), grouped in the gallery with the current season's group first
 - Lettering templates: up to 4 lines, each with its own font, size, color, weight, italic and uppercase setting
 - Cut contour: an offset outline that follows the shape of the text, for cutting out stickers
 - 14 Google Fonts, each checked for full Vietnamese diacritic support
-- 7 color themes, plus a text color for each part of the card
+- 8 color themes, plus a text color for each part of the card
+- Faint flower backgrounds (roses, lotus, peach blossom, ditsy florets) at three strengths, for any template
 - Sheet layouts of 1, 2, 4, 6, 8, 10, 12 or 21 cards per A4, or 2–20 strips. Cards are rotated automatically when the card and slot orientations differ.
 - One card per recipient: a multi-line recipient field generates one card per line and paginates across sheets
 - Auto-fit: text shrinks until it fits the card
@@ -114,6 +115,10 @@ Templates are defined in `TEMPLATES` in `js/templates.js`:
 | `deco(w, h, m, theme)` | Returns the SVG artwork, or `null` for none |
 | `lines` | `true`: each of the 4 fields is styled as its own line |
 | `contour` | Default contour offset (`off`, `sat`, `vua`, `rong`) |
+| `group` | Gallery section (`2010`, `tet`, `camon`, `qua`, `chu`) |
+| `bgPat`, `patColor` | Default flower background (`hong`, `sen`, `dao`, `nhi`) and its color |
+| `order` | Display order of the 4 fields, e.g. `['to', 'title', 'msg', 'sign']` to put the name line first |
+| `paper` | Card background override (e.g. white around a label) |
 | `shop` | Whether the shop footer is on by default |
 | `divider`, `gap`, `tight`, `fieldFont`, `toStyle`, `signStyle` | Optional layout tweaks |
 
@@ -125,10 +130,10 @@ index.html?mau=tet&giay=8&huong=ngang&mausac=do&nguoinhan=A|B
 
 | Param | Values |
 | --- | --- |
-| `mau` | template id: `camon`, `camonnho`, `kinhtang`, `dongchu`, `khung`, `sticker`, `tet`, `bieu`, `maukhoe`, `phunu`, `chaomung`, `huongdan`, `nhan` |
+| `mau` | template id: `camon`, `camonnho`, `kinhtang`, `dongchu`, `khung`, `sticker`, `tet`, `bieu`, `maukhoe`, `phunu`, `pn_hong`, `pn_sen`, `pn_nhi`, `nhanxinh`, `nhan2010`, `chaomung`, `huongdan`, `nhan` |
 | `giay` | layout: `1`, `2`, `4`, `6`, `8`, `10`, `12`, `21`, `strip` |
 | `huong` | `doc` or `ngang` |
-| `mausac` | theme: `kem`, `do`, `trang`, `hong`, `ngoc`, `vang`, `dem` |
+| `mausac` | theme: `kem`, `do`, `trang`, `hong`, `ngoc`, `vang`, `dem`, `tim` |
 | `nguoinhan` | recipients, separated by `\|` |
 | `tab` | tab to open: `mau`, `chu`, `mau-sac`, `giay`, `tiem` |
 | `test` | skip the first-run dialog |

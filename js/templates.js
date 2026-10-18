@@ -30,6 +30,31 @@
     ngoc: { name: 'Xanh ngọc', bg: '#F0F7F1', bg2: '#D3E8D8', frame: '#3C7A5A', title: '#1F5E42', text: '#2C3B33' },
     vang: { name: 'Vàng kim', bg: '#FDF1CC', bg2: '#F0CF77', frame: '#8A5A12', title: '#9B1C1C', text: '#4B2E05' },
     dem: { name: 'Xanh đêm', bg: '#1A3563', bg2: '#0D1F3D', frame: '#D8B25C', title: '#F3D48A', text: '#EEE6D6' },
+    tim: { name: 'Tím nhạt', bg: '#F8F3FC', bg2: '#E6D9F3', frame: '#9C7BC4', title: '#6A3FA0', text: '#45365A' },
+  };
+
+  Object.keys(THEMES).forEach((k) => (THEMES[k].id = k));
+
+  // Nhóm mẫu trong thư viện; nhóm đúng mùa (theo tháng) được đưa lên đầu
+  const GROUPS = [
+    { id: '2010', name: 'Mùa 20/10 · Tặng mẹ, cô, chị em', months: [9, 10] },
+    { id: 'tet', name: 'Tết', months: [12, 1, 2] },
+    { id: 'camon', name: 'Cảm ơn khách hàng' },
+    { id: 'qua', name: 'Quà biếu, chúc sức khỏe' },
+    { id: 'chu', name: 'Chữ, nhãn & sticker dán hộp' },
+  ];
+
+  // Hoa ẩn dưới nền
+  const PATTERNS = [['none', 'Không'], ['hong', 'Hoa hồng'], ['sen', 'Hoa sen'], ['dao', 'Hoa đào'], ['nhi', 'Hoa nhí']];
+
+  // Nhãn viền mây: [màu viền, màu nền nhãn] theo bảng màu thiệp
+  const LABEL_COLORS = {
+    hong: ['#F29BBF', '#FDE6EE'], tim: ['#B79CDB', '#F1E9FA'], kem: ['#E3B964', '#FFF4DA'], vang: ['#E3B964', '#FFF4DA'],
+    ngoc: ['#8CC7A1', '#E7F5EC'], do: ['#E0453C', '#FDE3E1'], trang: ['#F29BBF', '#FDE6EE'], dem: ['#7C9BD1', '#E8EEF9'],
+  };
+  const labelDeco = (opts) => (w, h, m, t) => {
+    const [border, fill] = LABEL_COLORS[t.id] || [t.frame, t.bg2];
+    return O.cuteLabel(w, h, m, border, fill, t.title, opts);
   };
 
   // Màu chữ gợi ý (null = tự động theo màu thiệp)
@@ -55,7 +80,7 @@
    *  deco(w, h, m, theme): vẽ hình trang trí, w/h tính bằng mm, m = cạnh ngắn */
   const TEMPLATES = [
     {
-      id: 'camon', name: 'Thư cảm ơn', theme: 'kem', layout: '4', orient: 'portrait', shop: true,
+      id: 'camon', group: 'camon', name: 'Thư cảm ơn', theme: 'kem', layout: '4', orient: 'portrait', shop: true,
       text: {
         title: 'Lời Cảm Ơn',
         to: 'Kính gửi Quý khách thân mến,',
@@ -73,7 +98,7 @@
         O.swallow(w / 2 + m * 0.065, m * 0.093, m * 0.075, t.title, 12),
     },
     {
-      id: 'camonnho', name: 'Thẻ cảm ơn nhỏ', theme: 'kem', layout: '10', orient: 'landscape', shop: true,
+      id: 'camonnho', group: 'camon', name: 'Thẻ cảm ơn nhỏ', theme: 'kem', layout: '10', orient: 'landscape', shop: true,
       text: { title: 'Cảm ơn bạn!', to: '', msg: 'Chúc bạn và gia đình luôn mạnh khỏe, bình an!', sign: '' },
       style: { title: { font: 'Dancing Script', bold: true }, body: { font: 'Be Vietnam Pro' } },
       sizes: { title: 19, to: 5.6, msg: 5.6, sign: 5.4, shop: 4.6 },
@@ -83,7 +108,7 @@
         O.flock(w - m * 0.25, m * 0.2, m * 0.12, t.title, 3),
     },
     {
-      id: 'kinhtang', name: 'Kính tặng (quà biếu)', theme: 'do', layout: '4', orient: 'portrait', shop: false,
+      id: 'kinhtang', group: 'qua', name: 'Kính tặng (quà biếu)', theme: 'do', layout: '4', orient: 'portrait', shop: false,
       text: {
         title: 'Kính Tặng',
         to: 'Bác Hai và gia đình',
@@ -101,7 +126,7 @@
         O.swallow(w / 2 + m * 0.06, m * 0.113, m * 0.065, t.frame, 12),
     },
     {
-      id: 'dongchu', name: 'Chỉ dòng chữ', theme: 'trang', layout: 'strip', orient: 'landscape', shop: false, plain: true,
+      id: 'dongchu', group: 'chu', name: 'Chỉ dòng chữ', theme: 'trang', layout: 'strip', orient: 'landscape', shop: false, plain: true,
       text: { title: '', to: '', msg: 'Cảm ơn bạn rất nhiều!', sign: '' },
       style: { title: { font: 'Dancing Script', bold: true }, body: { font: 'Dancing Script', bold: true } },
       colors: { title: '#A3201D', body: '#A3201D' },
@@ -111,7 +136,7 @@
     },
     {
       // Kiểu chữ dán hộp quà: 3 dòng, mỗi dòng một kiểu chữ riêng, khung song hồi văn
-      id: 'khung', name: 'Chữ kính biếu (khung hồi văn)', theme: 'trang', layout: '10', orient: 'landscape', shop: false, lines: true,
+      id: 'khung', group: 'chu', name: 'Chữ kính biếu (khung hồi văn)', theme: 'trang', layout: '10', orient: 'landscape', shop: false, lines: true,
       text: { title: 'CÔNG TY', to: 'AN PHÁT', msg: 'Kính Biếu', sign: '' },
       style: { title: { font: 'Bevan' }, to: { font: 'Bevan' }, msg: { font: 'Great Vibes' }, sign: { font: 'Dancing Script' } },
       colors: { title: '#E0141B', to: '#E0141B', msg: '#E0141B', sign: '#E0141B' },
@@ -122,7 +147,7 @@
     },
     {
       // Chữ rời có đường viền cắt ôm theo chữ (cắt ra làm sticker)
-      id: 'sticker', name: 'Chữ có viền cắt (sticker)', theme: 'trang', layout: '10', orient: 'landscape', shop: false, lines: true, plain: true, contour: 'vua',
+      id: 'sticker', group: 'chu', name: 'Chữ có viền cắt (sticker)', theme: 'trang', layout: '10', orient: 'landscape', shop: false, lines: true, plain: true, contour: 'vua',
       text: { title: 'Chúc Mừng Sinh Nhật', to: 'Chị Trà', msg: 'Chúc chị luôn xinh đẹp và thành công!', sign: '' },
       style: { title: { font: 'Lobster' }, to: { font: 'Baloo 2', bold: true }, msg: { font: 'Dancing Script' }, sign: { font: 'Dancing Script' } },
       colors: { title: '#E0141B', to: '#E0141B', msg: '#E0141B', sign: '#E0141B' },
@@ -132,7 +157,7 @@
       deco: null,
     },
     {
-      id: 'tet', name: 'Chúc Tết', theme: 'do', layout: '4', orient: 'portrait', shop: true,
+      id: 'tet', group: 'tet', name: 'Chúc Tết', theme: 'do', layout: '4', orient: 'portrait', shop: true,
       text: { title: 'Chúc Mừng Năm Mới', to: '', msg: 'An Khang Thịnh Vượng\nVạn Sự Như Ý', sign: 'Xuân Đinh Mùi 2027' },
       style: { title: { font: 'Dancing Script', bold: true }, body: { font: 'Playfair Display', bold: true } },
       sizes: { title: 12, to: 5, msg: 6.4, sign: 4.4, shop: 3.3 },
@@ -144,7 +169,7 @@
         O.lantern(w - m * 0.29, m * 0.055, m * 0.015, m * 0.15, '#E03A2C', t.frame),
     },
     {
-      id: 'bieu', name: 'Biếu ông bà, cha mẹ', theme: 'vang', layout: '4', orient: 'portrait', shop: false,
+      id: 'bieu', group: 'qua', name: 'Biếu ông bà, cha mẹ', theme: 'vang', layout: '4', orient: 'portrait', shop: false,
       text: {
         title: 'Kính Biếu',
         to: 'Ông Bà Nội',
@@ -162,7 +187,7 @@
         O.peach(w - m * 0.24, h - m * 0.165, m * 0.15, 12) + O.peach(w - m * 0.36, h - m * 0.13, m * 0.11, -12),
     },
     {
-      id: 'maukhoe', name: 'Chúc mau khỏe', theme: 'ngoc', layout: '4', orient: 'portrait', shop: false,
+      id: 'maukhoe', group: 'qua', name: 'Chúc mau khỏe', theme: 'ngoc', layout: '4', orient: 'portrait', shop: false,
       text: {
         title: 'Chúc Mau Khỏe',
         to: 'Gửi chị Mai,',
@@ -180,7 +205,7 @@
         O.cloud(w - m * 0.09, m * 0.085, m * 0.15, t.frame, true),
     },
     {
-      id: 'phunu', name: 'Tặng mẹ, 20/10, 8/3', theme: 'hong', layout: '4', orient: 'portrait', shop: false,
+      id: 'phunu', group: '2010', name: 'Tặng mẹ, 20/10, 8/3', theme: 'hong', layout: '4', orient: 'portrait', shop: false,
       text: {
         title: 'Chúc Mừng 20/10',
         to: 'Gửi Mẹ yêu,',
@@ -199,7 +224,73 @@
         O.bud(m * 0.085, h - m * 0.19, m * 0.012, 'dao', -20),
     },
     {
-      id: 'chaomung', name: 'Thiệp chào mừng', theme: 'ngoc', layout: '4', orient: 'portrait', shop: true,
+      // 20/10: hoa hồng ẩn dưới nền, chữ viết đè lên
+      id: 'pn_hong', group: '2010', name: '20/10 · Nền hoa hồng', theme: 'hong', layout: '4', orient: 'portrait', shop: false, bgPat: 'hong',
+      text: {
+        title: 'Chúc Mừng 20/10',
+        to: 'Gửi Mẹ yêu,',
+        msg: 'Chúc Mẹ luôn xinh đẹp, hạnh phúc và tràn đầy sức khỏe. Cảm ơn Mẹ vì tất cả yêu thương!',
+        sign: 'Con yêu của Mẹ',
+      },
+      style: { title: { font: 'Great Vibes' }, body: { font: 'Lora' } },
+      sizes: { title: 13.5, to: 5.6, msg: 4.9, sign: 6.2, shop: 3.3 },
+      fieldFont: { sign: 'title' }, toStyle: 'italic',
+      pad: [16, 13, 16, 13], divider: true,
+      deco: (w, h, m, t) => O.frameSimple(w, h, m, t.frame, true),
+    },
+    {
+      id: 'pn_sen', group: '2010', name: '20/10 · Nền hoa sen', theme: 'kem', layout: '4', orient: 'portrait', shop: false, bgPat: 'sen', patColor: '#D9719A',
+      text: {
+        title: 'Mừng Ngày 20/10',
+        to: 'Ngày Phụ Nữ Việt Nam',
+        msg: 'Kính chúc chị luôn rạng rỡ, an vui và hạnh phúc. Gửi chút yến sào để chị giữ gìn sức khỏe.',
+        sign: 'Kính tặng',
+      },
+      style: { title: { font: 'Charm', bold: true }, body: { font: 'Lora' } },
+      colors: { title: '#B8336A' },
+      sizes: { title: 12.5, to: 5.8, msg: 4.8, sign: 5.8, shop: 3.3 },
+      fieldFont: { to: 'title', sign: 'title' },
+      pad: [16, 13, 18, 13], divider: true,
+      deco: (w, h, m, t) => O.frameClassic(w, h, m, t.frame),
+    },
+    {
+      id: 'pn_nhi', group: '2010', name: '20/10 · Hoa nhí tím', theme: 'tim', layout: '4', orient: 'portrait', shop: false, bgPat: 'nhi',
+      text: {
+        title: 'Chúc Mừng 20/10',
+        to: 'Gửi cô giáo kính yêu,',
+        msg: 'Chúc cô luôn trẻ đẹp, vui vẻ và hạnh phúc. Em cảm ơn cô rất nhiều!',
+        sign: 'Happy Women’s Day',
+      },
+      style: { title: { font: 'Dancing Script', bold: true }, body: { font: 'Be Vietnam Pro' } },
+      sizes: { title: 12, to: 5.4, msg: 4.8, sign: 7, shop: 3.3 },
+      fieldFont: { sign: 'title' },
+      pad: [14, 14, 14, 14],
+      deco: (w, h, m, t) => O.frameSimple(w, h, m, t.frame, false),
+    },
+    {
+      // Nhãn viền mây dễ thương (như mẫu "Gia Đình ... Kính Gửi Tặng"): dòng tên ở trên
+      id: 'nhanxinh', group: '2010', name: 'Nhãn viền mây xinh', theme: 'hong', layout: '10', orient: 'landscape', shop: false, lines: true, paper: '#FFFFFF',
+      order: ['to', 'title', 'msg', 'sign'],
+      text: { title: 'Kính Gửi Tặng', to: 'Gia Đình Minh Anh', msg: '', sign: '' },
+      style: { title: { font: 'Dancing Script', bold: true }, to: { font: 'Charm', bold: true }, msg: { font: 'Dancing Script' }, sign: { font: 'Dancing Script' } },
+      colors: { title: '#D6336C', to: '#D6336C', msg: '#D6336C', sign: '#D6336C' },
+      sizes: { title: 21, to: 15, msg: 9, sign: 8, shop: 4.6 },
+      gap: 0.4, tight: true,
+      pad: [18, 18, 27, 18],
+      deco: labelDeco(),
+    },
+    {
+      id: 'nhan2010', group: '2010', name: 'Nhãn 20/10 viền mây', theme: 'tim', layout: '10', orient: 'landscape', shop: false, lines: true, paper: '#FFFFFF',
+      text: { title: 'Chúc Mừng 20/10', to: 'Mẹ Yêu', msg: '', sign: '' },
+      style: { title: { font: 'Dancing Script', bold: true }, to: { font: 'Great Vibes' }, msg: { font: 'Dancing Script' }, sign: { font: 'Dancing Script' } },
+      colors: { title: '#7B3FB0', to: '#C2185B', msg: '#7B3FB0', sign: '#7B3FB0' },
+      sizes: { title: 16, to: 24, msg: 9, sign: 8, shop: 4.6 },
+      gap: 0.2, tight: true,
+      pad: [17, 18, 27, 18],
+      deco: labelDeco(),
+    },
+    {
+      id: 'chaomung', group: 'camon', name: 'Thiệp chào mừng', theme: 'ngoc', layout: '4', orient: 'portrait', shop: true,
       text: {
         title: 'Chào Mừng',
         to: 'Quý khách đến với tiệm yến nhà mình!',
@@ -217,7 +308,7 @@
         O.cloud(w - m * 0.11, m * 0.115, m * 0.13, t.frame, true),
     },
     {
-      id: 'huongdan', name: 'Cách chưng yến', theme: 'kem', layout: '4', orient: 'portrait', shop: true,
+      id: 'huongdan', group: 'camon', name: 'Cách chưng yến', theme: 'kem', layout: '4', orient: 'portrait', shop: true,
       text: {
         title: 'Cách Chưng Yến',
         to: '',
@@ -234,7 +325,7 @@
         O.swallow(w / 2 + m * 0.055, m * 0.09, m * 0.06, t.title, 12),
     },
     {
-      id: 'nhan', name: 'Nhãn dán hộp yến', theme: 'trang', layout: '21', orient: 'landscape', shop: true,
+      id: 'nhan', group: 'chu', name: 'Nhãn dán hộp yến', theme: 'trang', layout: '21', orient: 'landscape', shop: true,
       text: { title: 'Yến Sào Tinh Chế', to: '', msg: 'Khối lượng: 50g', sign: 'NSX: ......./......./..........' },
       style: { title: { font: 'Playfair Display', bold: true }, body: { font: 'Be Vietnam Pro' } },
       sizes: { title: 13, to: 6, msg: 7.2, sign: 6.2, shop: 6.2 },
@@ -246,7 +337,7 @@
   const TITLE_PRESETS = [
     'Lời Cảm Ơn', 'Cảm ơn bạn!', 'Thank You', 'Kính Tặng', 'Thân Tặng', 'Kính Biếu',
     'Chúc Mừng Năm Mới', 'Mừng Thọ', 'Chúc Mau Khỏe', 'Chúc Mừng 20/10', 'Chúc Mừng 8/3',
-    'Chúc Mừng Sinh Nhật', 'Chào Mừng',
+    'Chúc Mừng Sinh Nhật', 'Chào Mừng', 'Kính Gửi Tặng', 'Ngày Phụ Nữ Việt Nam', 'Happy Women’s Day',
   ];
 
   const PHRASES = [
@@ -288,6 +379,17 @@
       ],
     },
     {
+      group: 'Ngày Phụ nữ Việt Nam 20/10',
+      items: [
+        'Chúc Mẹ luôn xinh đẹp, hạnh phúc và tràn đầy sức khỏe. Cảm ơn Mẹ vì tất cả yêu thương!',
+        'Chúc vợ yêu ngày 20/10 thật vui, luôn rạng rỡ và hạnh phúc bên gia đình mình.',
+        'Chúc cô luôn trẻ đẹp, vui vẻ và hạnh phúc. Em cảm ơn cô rất nhiều!',
+        'Chúc chị em luôn xinh đẹp, thành công và an vui. Gửi chút yến sào giữ gìn sức khỏe nhé!',
+        'Nhân ngày 20/10, kính chúc Quý khách luôn rạng ngời, khỏe đẹp và hạnh phúc.',
+        'Gửi người phụ nữ tuyệt vời nhất — chúc Mẹ/Bà luôn bình an, sống lâu trăm tuổi.',
+      ],
+    },
+    {
       group: 'Tết và ngày lễ',
       items: [
         'An Khang Thịnh Vượng\nVạn Sự Như Ý',
@@ -308,5 +410,5 @@
     },
   ];
 
-  global.TD = { FONTS, THEMES, TEXT_COLORS, TEMPLATES, TITLE_PRESETS, PHRASES };
+  global.TD = { FONTS, THEMES, TEXT_COLORS, TEMPLATES, TITLE_PRESETS, PHRASES, PATTERNS, GROUPS };
 })(window);
