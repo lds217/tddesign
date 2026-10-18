@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const { FONTS, THEMES, TEXT_COLORS, TEMPLATES, TITLE_PRESETS, PHRASES, PATTERNS, GROUPS } = window.TD;
+  const { FONTS, THEMES, TEXT_COLORS, TEMPLATES, TITLE_PRESETS, PHRASES, PATTERNS, GROUPS, BG_ART } = window.TD;
   const O = window.Orn;
   const TPL = Object.fromEntries(TEMPLATES.map((t) => [t.id, t]));
   const $ = (s, r = document) => r.querySelector(s);
@@ -39,7 +39,24 @@
   const DEFAULT_STYLE = { font: 'Lora', size: 1, bold: false, italic: false, upper: false, align: 'center' };
   const CONTOUR = { off: 0, sat: 0.03, vua: 0.05, rong: 0.08 }; // khoảng cách viền cắt (× cạnh ngắn)
   const PAT_IDS = new Set(PATTERNS.map(([k]) => k));
-  const PAT_OPACITY = { 1: 0.16, 2: 0.26, 3: 0.4 }; // độ đậm hoa nền: nhạt / vừa / đậm
+  const PAT_OPACITY = { 1: 0.22, 2: 0.38, 3: 0.6 }; // độ đậm hoa nền: nhạt / vừa / đậm
+
+  // Ảnh hoa thật đặt theo đơn vị cqmin (1% cạnh ngắn của thiệp)
+  function artImgs(list) {
+    return list.map((a) => {
+      const st = ['left', 'right', 'top', 'bottom'].filter((k) => a[k] != null).map((k) => `${k}:${a[k]}cqmin`);
+      if (a.cx) st.push(`left:calc(50% - ${a.w / 2}cqmin)`);
+      st.push(a.h ? `height:${a.h}cqmin` : `width:${a.w}cqmin`);
+      if (a.flip) st.push('transform:scaleX(-1)');
+      return `<img src="art/${a.src}.webp" alt="" draggable="false" style="${st.join(';')}">`;
+    }).join('');
+  }
+  function bgArtHTML(kind, op) {
+    const art = BG_ART[kind];
+    if (!art) return '';
+    if (art === 'tile') return `<div class="bgart tile" style="opacity:${op}"></div>`;
+    return `<div class="bgart" style="opacity:${op}">${artImgs(art)}</div>`;
+  }
   const orderOf = (t) => t.order || FIELDS;
 
   // Các phần chỉnh kiểu chữ riêng: mẫu thường có 2 phần, mẫu "nhiều dòng" mỗi dòng một phần
@@ -302,8 +319,9 @@
 
     const box = `viewBox="0 0 ${r2(w)} ${r2(h)}" width="${r2(w)}mm" height="${r2(h)}mm" preserveAspectRatio="none" aria-hidden="true"`;
     const m = Math.min(w, h);
-    const pat = st.bgPat !== 'none' ? O.pattern(st.bgPat, w, h, m, t.patColor || th.frame, PAT_OPACITY[st.bgLevel] || 0.26) : '';
-    const svg = (pat ? `<svg class="deco" ${box}>${pat}</svg>` : '') + (deco ? `<svg class="deco" ${box}>${t.deco(w, h, m, th)}</svg>` : '');
+    const svg = (st.bgPat !== 'none' ? bgArtHTML(st.bgPat, PAT_OPACITY[st.bgLevel] || 0.32) : '') +
+      (deco ? `<svg class="deco" ${box}>${t.deco(w, h, m, th)}</svg>` : '') +
+      (deco && t.art ? `<div class="art-over">${artImgs(t.art)}</div>` : '');
     const ct = contourMm(st, w, h);
     const ctColor = luminance(fs.title.color) > 0.72 ? '#8C8C8C' : fs.title.color;
     const ctSvg = ct ? `<svg class="contour" ${box}><path d="" fill="none" stroke="${ctColor}" stroke-width="0.25" stroke-linejoin="round"/></svg>` : '';
@@ -677,14 +695,12 @@
   function buildPatterns() {
     const th = THEMES[state.theme];
     const t = TPL[state.tpl];
-    const key = th.id + '|' + (t.patColor || '');
+    const key = th.id;
     if (patTheme === key) return;
     patTheme = key;
-    const c = t.patColor || th.frame;
-    $('#patGrid').innerHTML = PATTERNS.map(([id, name]) => {
-      const art = id === 'none' ? '' : O.pattern(id, 60, 80, 60, c, id === 'nhi' ? 0.4 : 0.6);
-      return `<button type="button" class="theme-btn pat-btn" data-pat="${id}" aria-pressed="false"><svg class="pat-thumb" viewBox="0 0 60 80" style="background:${th.bg}">${art}</svg>${name}</button>`;
-    }).join('');
+    $('#patGrid').innerHTML = PATTERNS.map(([id, name]) =>
+      `<button type="button" class="theme-btn pat-btn" data-pat="${id}" aria-pressed="false"><span class="pat-thumb" style="background:${th.bg}">${bgArtHTML(id, 0.85)}</span>${name}</button>`
+    ).join('');
   }
 
   function swatchesHTML(which) {

@@ -11,7 +11,7 @@ No build step, no backend. All state is kept in `localStorage`.
 - Cut contour: an offset outline that follows the shape of the text, for cutting out stickers
 - 14 Google Fonts, each checked for full Vietnamese diacritic support
 - 8 color themes, plus a text color for each part of the card
-- Faint flower backgrounds (roses, lotus, peach blossom, ditsy florets) at three strengths, for any template
+- Faint flower backgrounds at three strengths, for any template: roses, peony, lotus, peach blossom and scattered blossoms, cut out from public-domain botanical plates (Redouté, Blanco, Siebold) — see `art/CREDITS.md`
 - Sheet layouts of 1, 2, 4, 6, 8, 10, 12 or 21 cards per A4, or 2–20 strips. Cards are rotated automatically when the card and slot orientations differ.
 - One card per recipient: a multi-line recipient field generates one card per line and paginates across sheets
 - Auto-fit: text shrinks until it fits the card
@@ -44,6 +44,8 @@ js/contour.js         text contour: distance field, marching squares, smoothed S
 js/templates.js       fonts, themes, templates, title presets, phrases
 js/app.js             state, rendering, auto-fit, UI bindings, print/PDF
 vendor/               html2canvas 1.4.1, jsPDF 4.2.1 (lazy-loaded for PDF export)
+art/                  flower artwork (WebP with transparency) and CREDITS.md
+tools/make_art.py     rebuilds art/ from the original Commons scans (Pillow, numpy, scipy)
 icons/                app icons
 manifest.webmanifest  PWA manifest
 sw.js                 service worker

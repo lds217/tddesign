@@ -45,7 +45,18 @@
   ];
 
   // Hoa ẩn dưới nền
-  const PATTERNS = [['none', 'Không'], ['hong', 'Hoa hồng'], ['sen', 'Hoa sen'], ['dao', 'Hoa đào'], ['nhi', 'Hoa nhí']];
+  const PATTERNS = [['none', 'Không'], ['hong', 'Hoa hồng'], ['mau', 'Mẫu đơn'], ['sen', 'Hoa sen'], ['dao', 'Hoa đào'], ['nhi', 'Hoa nhí']];
+
+  /* Tranh hoa thật — trích từ tranh thực vật cổ (phạm vi công cộng), xem art/CREDITS.md.
+   * Vị trí/kích thước tính theo cạnh ngắn của thiệp (1 = 1% cạnh ngắn); w = rộng, h = cao. */
+  const BG_ART = {
+    hong: [{ src: 'rose-heads', right: -18, bottom: -12, w: 82 }, { src: 'rose-heads', left: -9, top: -11, w: 50, flip: true }],
+    mau: [{ src: 'peony-head', right: -20, bottom: -10, w: 84 }, { src: 'peony-head', left: -8, top: -12, w: 52 }],
+    sen: [{ src: 'lotus-top', right: -16, bottom: -9, w: 70 }],
+    dao: [{ src: 'peach', right: 3, top: -6, h: 82 }, { src: 'peach', left: 4, bottom: -14, h: 56 }],
+    nhi: 'tile',
+  };
+  const FRANGIPANI = [{ src: 'frangipani', left: 0, top: -1, w: 40 }, { src: 'frangipani-r', left: 30, top: -3, w: 23 }];
 
   // Nhãn viền mây: [màu viền, màu nền nhãn] theo bảng màu thiệp
   const LABEL_COLORS = {
@@ -197,10 +208,10 @@
       style: { title: { font: 'Dancing Script', bold: true }, body: { font: 'Lora' } },
       sizes: { title: 12.5, to: 5.2, msg: 4.6, sign: 5.6, shop: 3.3 },
       fieldFont: { sign: 'title' },
-      pad: [17, 12, 27, 12],
+      pad: [17, 12, 33, 12],
+      art: [{ src: 'lotus', cx: true, bottom: 4, w: 27 }],
       deco: (w, h, m, t) =>
         O.frameSimple(w, h, m, t.frame, true) +
-        O.lotus(w / 2, h - m * 0.075, m * 0.3, 'color') +
         O.cloud(m * 0.09, m * 0.085, m * 0.15, t.frame) +
         O.cloud(w - m * 0.09, m * 0.085, m * 0.15, t.frame, true),
     },
@@ -215,13 +226,9 @@
       style: { title: { font: 'Great Vibes' }, body: { font: 'Lora' } },
       sizes: { title: 12.5, to: 5.4, msg: 4.7, sign: 5.8, shop: 3.3 },
       fieldFont: { sign: 'title' },
-      pad: [27, 12, 14, 12],
-      deco: (w, h, m) =>
-        O.frameSimple(w, h, m, '#D07A92', false) +
-        O.branch(w - m * 0.045, m * 0.07, m * 0.6, 'dao', true) +
-        O.blossom(m * 0.12, h - m * 0.12, m * 0.045, 'dao', 10) +
-        O.blossom(m * 0.2, h - m * 0.085, m * 0.032, 'dao', 40) +
-        O.bud(m * 0.085, h - m * 0.19, m * 0.012, 'dao', -20),
+      pad: [16, 19, 16, 19],
+      art: [{ src: 'peach', right: 5, top: 3, h: 74 }, { src: 'peach', left: 6, bottom: 2, h: 46 }],
+      deco: (w, h, m) => O.frameSimple(w, h, m, '#D07A92', false),
     },
     {
       // 20/10: hoa hồng ẩn dưới nền, chữ viết đè lên
@@ -239,7 +246,22 @@
       deco: (w, h, m, t) => O.frameSimple(w, h, m, t.frame, true),
     },
     {
-      id: 'pn_sen', group: '2010', name: '20/10 · Nền hoa sen', theme: 'kem', layout: '4', orient: 'portrait', shop: false, bgPat: 'sen', patColor: '#D9719A',
+      id: 'pn_mau', group: '2010', name: '20/10 · Hoa mẫu đơn', theme: 'kem', layout: '4', orient: 'portrait', shop: false, bgPat: 'mau',
+      text: {
+        title: 'Chúc Mừng 20/10',
+        to: 'Kính tặng Mẹ,',
+        msg: 'Chúc Mẹ luôn khỏe mạnh, bình an và rạng rỡ như đóa mẫu đơn. Con yêu Mẹ thật nhiều!',
+        sign: 'Con gái của Mẹ',
+      },
+      style: { title: { font: 'Great Vibes' }, body: { font: 'Lora' } },
+      colors: { title: '#9B1C3A' },
+      sizes: { title: 14, to: 5.6, msg: 4.8, sign: 6.4, shop: 3.3 },
+      fieldFont: { sign: 'title' }, toStyle: 'italic',
+      pad: [17, 13, 17, 13], divider: true,
+      deco: (w, h, m, t) => O.frameClassic(w, h, m, t.frame),
+    },
+    {
+      id: 'pn_sen', group: '2010', name: '20/10 · Nền hoa sen', theme: 'kem', layout: '4', orient: 'portrait', shop: false, bgPat: 'sen',
       text: {
         title: 'Mừng Ngày 20/10',
         to: 'Ngày Phụ Nữ Việt Nam',
@@ -277,6 +299,7 @@
       sizes: { title: 21, to: 15, msg: 9, sign: 8, shop: 4.6 },
       gap: 0.4, tight: true,
       pad: [18, 18, 27, 18],
+      art: FRANGIPANI,
       deco: labelDeco(),
     },
     {
@@ -287,6 +310,7 @@
       sizes: { title: 16, to: 24, msg: 9, sign: 8, shop: 4.6 },
       gap: 0.2, tight: true,
       pad: [17, 18, 27, 18],
+      art: FRANGIPANI,
       deco: labelDeco(),
     },
     {
@@ -410,5 +434,5 @@
     },
   ];
 
-  global.TD = { FONTS, THEMES, TEXT_COLORS, TEMPLATES, TITLE_PRESETS, PHRASES, PATTERNS, GROUPS };
+  global.TD = { FONTS, THEMES, TEXT_COLORS, TEMPLATES, TITLE_PRESETS, PHRASES, PATTERNS, GROUPS, BG_ART };
 })(window);
