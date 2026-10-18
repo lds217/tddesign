@@ -1,12 +1,12 @@
 /* Cho phép mở ứng dụng khi mất mạng.
  * Tệp của trang: lấy bản mới từ mạng trước, mất mạng thì dùng bản đã lưu.
  * Phông chữ Google: dùng bản đã lưu (không đổi). */
-const CACHE = 'thiepyen-v6';
+const CACHE = 'thiepyen-v7';
 const CORE = [
   './', 'index.html', 'css/style.css', 'js/ornaments.js', 'js/contour.js', 'js/templates.js', 'js/app.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png',
   'vendor/html2canvas.min.js', 'vendor/jspdf.umd.min.js',
-  'art/rose-heads.webp', 'art/peony-head.webp', 'art/lotus-top.webp', 'art/lotus.webp', 'art/peach.webp',
+  'art/rose-tl.webp', 'art/rose-br.webp', 'art/peony-tl.webp', 'art/peony-br.webp', 'art/lotus-top.webp', 'art/lotus.webp', 'art/peach.webp',
   'art/tile-blossoms.webp', 'art/frangipani.webp', 'art/frangipani-r.webp',
 ];
 

@@ -49,9 +49,10 @@
 
   /* Tranh hoa thật — trích từ tranh thực vật cổ (phạm vi công cộng), xem art/CREDITS.md.
    * Vị trí/kích thước tính theo cạnh ngắn của thiệp (1 = 1% cạnh ngắn); w = rộng, h = cao. */
+  // Hoa ở góc dùng ảnh đã xoay sẵn (rose-tl, rose-br...): chỗ cắt của tranh nằm đúng góc thiệp nên không lộ đường cắt
   const BG_ART = {
-    hong: [{ src: 'rose-heads', right: -18, bottom: -12, w: 82 }, { src: 'rose-heads', left: -9, top: -11, w: 50, flip: true }],
-    mau: [{ src: 'peony-head', right: -20, bottom: -10, w: 84 }, { src: 'peony-head', left: -8, top: -12, w: 52 }],
+    hong: [{ src: 'rose-br', right: 0, bottom: 0, w: 54 }, { src: 'rose-tl', left: 0, top: 0, w: 42 }],
+    mau: [{ src: 'peony-br', right: 0, bottom: 0, w: 56 }, { src: 'peony-tl', left: 0, top: 0, w: 46 }],
     sen: [{ src: 'lotus-top', right: -16, bottom: -9, w: 70 }],
     dao: [{ src: 'peach', right: 3, top: -6, h: 82 }, { src: 'peach', left: 4, bottom: -14, h: 56 }],
     nhi: 'tile',

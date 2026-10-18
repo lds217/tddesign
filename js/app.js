@@ -42,20 +42,26 @@
   const PAT_OPACITY = { 1: 0.22, 2: 0.38, 3: 0.6 }; // độ đậm hoa nền: nhạt / vừa / đậm
 
   // Ảnh hoa thật đặt theo đơn vị cqmin (1% cạnh ngắn của thiệp)
-  function artImgs(list) {
-    return list.map((a) => {
+  // k: hệ số thu nhỏ (thiệp nằm ngang có chữ chạy hết bề ngang nên hoa ở góc vẽ nhỏ lại)
+  function artImgs(list, k = 1) {
+    return list.map((a0) => {
+      const a = { ...a0 };
+      ['w', 'h'].forEach((d) => { if (a[d] != null) a[d] = r2(a[d] * k); });
+      ['left', 'right', 'top', 'bottom'].forEach((d) => { if (a[d] != null && a[d] !== 0) a[d] = r2(a[d] * k); });
       const st = ['left', 'right', 'top', 'bottom'].filter((k) => a[k] != null).map((k) => `${k}:${a[k]}cqmin`);
       if (a.cx) st.push(`left:calc(50% - ${a.w / 2}cqmin)`);
       st.push(a.h ? `height:${a.h}cqmin` : `width:${a.w}cqmin`);
-      if (a.flip) st.push('transform:scaleX(-1)');
+      const tf = [a.rot ? `rotate(${a.rot}deg)` : '', a.flip ? 'scaleX(-1)' : ''].filter(Boolean).join(' ');
+      if (tf) st.push(`transform:${tf}`);
       return `<img src="art/${a.src}.webp" alt="" draggable="false" style="${st.join(';')}">`;
     }).join('');
   }
-  function bgArtHTML(kind, op) {
+  const landscapeK = (w, h) => (w && h && w / h > 1.2 ? 0.74 : 1);
+  function bgArtHTML(kind, op, w, h) {
     const art = BG_ART[kind];
     if (!art) return '';
     if (art === 'tile') return `<div class="bgart tile" style="opacity:${op}"></div>`;
-    return `<div class="bgart" style="opacity:${op}">${artImgs(art)}</div>`;
+    return `<div class="bgart" style="opacity:${op}">${artImgs(art, landscapeK(w, h))}</div>`;
   }
   const orderOf = (t) => t.order || FIELDS;
 
@@ -319,7 +325,7 @@
 
     const box = `viewBox="0 0 ${r2(w)} ${r2(h)}" width="${r2(w)}mm" height="${r2(h)}mm" preserveAspectRatio="none" aria-hidden="true"`;
     const m = Math.min(w, h);
-    const svg = (st.bgPat !== 'none' ? bgArtHTML(st.bgPat, PAT_OPACITY[st.bgLevel] || 0.32) : '') +
+    const svg = (st.bgPat !== 'none' ? bgArtHTML(st.bgPat, PAT_OPACITY[st.bgLevel] || 0.38, w, h) : '') +
       (deco ? `<svg class="deco" ${box}>${t.deco(w, h, m, th)}</svg>` : '') +
       (deco && t.art ? `<div class="art-over">${artImgs(t.art)}</div>` : '');
     const ct = contourMm(st, w, h);
