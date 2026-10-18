@@ -160,12 +160,26 @@
     {
       // Chữ rời có đường viền cắt ôm theo chữ (cắt ra làm sticker)
       id: 'sticker', group: 'chu', name: 'Chữ có viền cắt (sticker)', theme: 'trang', layout: '10', orient: 'landscape', shop: false, lines: true, plain: true, contour: 'vua',
+      fitFirst: 'title', fitFirstMin: 0.5,
       text: { title: 'Chúc Mừng Sinh Nhật', to: 'Chị Trà', msg: 'Chúc chị luôn xinh đẹp và thành công!', sign: '' },
       style: { title: { font: 'Lobster' }, to: { font: 'Baloo 2', bold: true }, msg: { font: 'Dancing Script' }, sign: { font: 'Dancing Script' } },
       colors: { title: '#E0141B', to: '#E0141B', msg: '#E0141B', sign: '#E0141B' },
       sizes: { title: 17, to: 27, msg: 10, sign: 8, shop: 4.6 },
       gap: 0, tight: true,
       pad: [10, 9, 10, 9],
+      deco: null,
+    },
+    {
+      // 2 dòng: dòng trên là lời chúc viết dài bao nhiêu cũng được (tự thu nhỏ riêng dòng đó), dòng dưới là tên thật to
+      id: 'sticker2', group: 'chu', name: 'Chữ 2 dòng (dòng trên dài)', theme: 'trang', layout: '10', orient: 'landscape', shop: false,
+      lines: true, plain: true, contour: 'vua', order: ['msg', 'to'], fitFirst: 'msg', fitFirstMin: 0.45,
+      labels: { msg: 'lời chúc, viết dài được', to: 'tên người nhận' },
+      text: { title: '', to: 'Chị Trà', msg: 'Chúc mừng sinh nhật chị, chúc chị luôn xinh đẹp, hạnh phúc và thành công!', sign: '' },
+      style: { title: { font: 'Lobster' }, to: { font: 'Baloo 2', bold: true }, msg: { font: 'Lobster' }, sign: { font: 'Dancing Script' } },
+      colors: { title: '#E0141B', to: '#E0141B', msg: '#E0141B', sign: '#E0141B' },
+      sizes: { title: 14, to: 30, msg: 13.5, sign: 8, shop: 4.6 },
+      gap: 0.6, tight: true,
+      pad: [9, 8, 9, 8],
       deco: null,
     },
     {
@@ -293,6 +307,7 @@
     {
       // Nhãn viền mây dễ thương (như mẫu "Gia Đình ... Kính Gửi Tặng"): dòng tên ở trên
       id: 'nhanxinh', group: '2010', name: 'Nhãn viền mây xinh', theme: 'hong', layout: '10', orient: 'landscape', shop: false, lines: true, paper: '#FFFFFF',
+      fitFirst: 'to', fitFirstMin: 0.55,
       order: ['to', 'title', 'msg', 'sign'],
       text: { title: 'Kính Gửi Tặng', to: 'Gia Đình Minh Anh', msg: '', sign: '' },
       style: { title: { font: 'Dancing Script', bold: true }, to: { font: 'Charm', bold: true }, msg: { font: 'Dancing Script' }, sign: { font: 'Dancing Script' } },
@@ -305,6 +320,7 @@
     },
     {
       id: 'nhan2010', group: '2010', name: 'Nhãn 20/10 viền mây', theme: 'tim', layout: '10', orient: 'landscape', shop: false, lines: true, paper: '#FFFFFF',
+      fitFirst: 'title', fitFirstMin: 0.55,
       text: { title: 'Chúc Mừng 20/10', to: 'Mẹ Yêu', msg: '', sign: '' },
       style: { title: { font: 'Dancing Script', bold: true }, to: { font: 'Great Vibes' }, msg: { font: 'Dancing Script' }, sign: { font: 'Dancing Script' } },
       colors: { title: '#7B3FB0', to: '#C2185B', msg: '#7B3FB0', sign: '#7B3FB0' },

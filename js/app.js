@@ -332,7 +332,8 @@
     const ctColor = luminance(fs.title.color) > 0.72 ? '#8C8C8C' : fs.title.color;
     const ctSvg = ct ? `<svg class="contour" ${box}><path d="" fill="none" stroke="${ctColor}" stroke-width="0.25" stroke-linejoin="round"/></svg>` : '';
     const classes = ['card', rotate && 'rot', t.tight && 'tight'].filter(Boolean).join(' ');
-    return `<div class="${classes}" data-k="${esc(key)}"${ct ? ` data-ct="${ct}"` : ''} style="${esc(style)}">${svg}${ctSvg}<div class="content"><div class="main-c"><div class="stack">${stack}</div></div>${shopHTML}</div></div>`;
+    const ffAttr = t.fitFirst ? ` data-ff="${t.fitFirst}" data-ffmin="${t.fitFirstMin || 0.5}"` : '';
+    return `<div class="${classes}" data-k="${esc(key)}"${ct ? ` data-ct="${ct}"` : ''}${ffAttr} style="${esc(style)}">${svg}${ctSvg}<div class="content"><div class="main-c"><div class="stack">${stack}</div></div>${shopHTML}</div></div>`;
   }
 
   function cutLinesSVG(g, used) {
@@ -394,8 +395,29 @@
       stack.offsetHeight <= main.clientHeight + 0.5 &&
       stack.scrollWidth <= stack.clientWidth + 1 &&
       content.scrollWidth <= content.clientWidth + 1;
+    const search = (prop, lo, hi) => {
+      for (let i = 0; i < 9; i++) {
+        const mid = (lo + hi) / 2;
+        card.style.setProperty(prop, mid.toFixed(4));
+        if (fits()) lo = mid;
+        else hi = mid;
+      }
+      card.style.setProperty(prop, lo.toFixed(4));
+      return lo.toFixed(4);
+    };
     card.style.setProperty('--fit', '1');
-    if (fits()) return { fit: '1', ok: true };
+    // Mẫu có dòng "viết dài được": thu nhỏ riêng dòng đó trước, giữ nguyên cỡ các dòng khác (VD: tên người nhận)
+    const ffProp = card.dataset.ff ? `--ff-${card.dataset.ff}` : null;
+    let ff = '1';
+    if (ffProp) {
+      card.style.setProperty(ffProp, '1');
+      if (fits()) return { fit: '1', ff, ffProp, ok: true };
+      const min = parseFloat(card.dataset.ffmin) || 0.5;
+      card.style.setProperty(ffProp, String(min));
+      if (fits()) return { fit: '1', ff: search(ffProp, min, 1), ffProp, ok: true };
+      ff = String(min);
+    }
+    if (fits()) return { fit: '1', ff, ffProp, ok: true };
     let lo = 0.2;
     let hi = 1;
     for (let i = 0; i < 9; i++) {
@@ -405,7 +427,7 @@
       else hi = mid;
     }
     card.style.setProperty('--fit', lo.toFixed(4));
-    return { fit: lo.toFixed(4), ok: lo > 0.2 || fits() };
+    return { fit: lo.toFixed(4), ff, ffProp, ok: lo > 0.2 || fits() };
   }
 
   // Kết quả co chữ được nhớ theo nội dung + kích thước thiệp → gõ thêm 1 tên chỉ tính lại 1 thiệp
@@ -413,6 +435,7 @@
   function fitCards(root) {
     $$('.card', root).forEach((card) => {
       card.style.removeProperty('--fit');
+      if (card.dataset.ff) card.style.removeProperty(`--ff-${card.dataset.ff}`);
       const key = card.style.cssText + '|' + contentKey(card);
       let v = fitCache.get(key);
       if (!v) {
@@ -420,6 +443,7 @@
         lruSet(fitCache, key, v, 600);
       } else {
         card.style.setProperty('--fit', v.fit);
+        if (v.ffProp) card.style.setProperty(v.ffProp, v.ff);
       }
       card.toggleAttribute('data-over', !v.ok);
     });
@@ -724,7 +748,7 @@
     if (partsTpl === t.id) return;
     partsTpl = t.id;
     const parts = partsFor(t);
-    if (!parts.some(([k]) => k === part)) part = 'title';
+    if (!parts.some(([k]) => k === part)) part = parts[0][0];
     $('#partSeg').innerHTML = parts.map(([k, label]) => `<button type="button" data-part="${k}" aria-pressed="false">${label}</button>`).join('');
     $('#partSeg').classList.toggle('many', parts.length > 2);
     $('#colorRows').innerHTML = parts.map(([k, label]) =>
@@ -733,9 +757,10 @@
     const L = {};
     if (t.lines) {
       orderOf(t).forEach((k, i) => {
-        const note = k === 'to' ? ' (tên)' : !t.text[k] ? ' (không bắt buộc)' : '';
-        L[k] = [`Dòng ${i + 1}${note}`, t.text[k] ? `VD: ${t.text[k]}` : ''];
+        const note = (t.labels && t.labels[k]) || (k === 'to' ? 'tên' : !t.text[k] ? 'không bắt buộc' : '');
+        L[k] = [`Dòng ${i + 1}${note ? ` (${note})` : ''}`, t.text[k] ? `VD: ${t.text[k]}` : ''];
       });
+      FIELDS.forEach((k) => { if (!L[k]) L[k] = ['', '']; });
     } else {
       Object.assign(L, { title: ['Tiêu đề', 'VD: Lời Cảm Ơn'], to: ['Gửi đến', 'VD: Kính gửi Cô Lan'], msg: ['Lời nhắn', 'Gõ lời chúc ở đây'], sign: ['Ký tên / Người gửi', 'VD: Trân trọng cảm ơn!'] });
     }
@@ -746,6 +771,10 @@
     // Sắp các ô chữ theo đúng thứ tự dòng trên thiệp
     const anchor = $('#fieldsEnd');
     orderOf(t).forEach((k) => anchor.parentNode.insertBefore($(`[data-fgroup="${k}"]`), anchor));
+    // Mẫu chỉ có 2 dòng thì ẩn các ô không dùng cho gọn
+    FIELDS.forEach((k) => { $(`[data-fgroup="${k}"]`).hidden = !orderOf(t).includes(k); });
+    // Chip tiêu đề có sẵn chỉ hợp với ô Tiêu đề của thiệp thường
+    $('#titleChips').hidden = !!t.lines;
   }
 
   function buildLayouts() {
@@ -1166,7 +1195,7 @@
         return;
       }
       state = fromTemplate(b.dataset.tpl, state);
-      part = 'title';
+      part = partsFor(TPL[state.tpl])[0][0];
       commit();
       toast(`Đã chọn: ${TPL[state.tpl].name}`);
     });

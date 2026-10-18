@@ -119,7 +119,9 @@ Templates are defined in `TEMPLATES` in `js/templates.js`:
 | `contour` | Default contour offset (`off`, `sat`, `vua`, `rong`) |
 | `group` | Gallery section (`2010`, `tet`, `camon`, `qua`, `chu`) |
 | `bgPat`, `patColor` | Default flower background (`hong`, `sen`, `dao`, `nhi`) and its color |
-| `order` | Display order of the 4 fields, e.g. `['to', 'title', 'msg', 'sign']` to put the name line first |
+| `order` | Fields shown and their order, e.g. `['to', 'title', 'msg', 'sign']` puts the name first; `['msg', 'to']` makes a 2-line template and hides the other inputs |
+| `fitFirst`, `fitFirstMin` | When text overflows, shrink only this field first (down to `fitFirstMin`) before shrinking the whole card, so e.g. the name keeps its size |
+| `labels` | Extra hint after “Dòng N” in the editor, per field |
 | `paper` | Card background override (e.g. white around a label) |
 | `shop` | Whether the shop footer is on by default |
 | `divider`, `gap`, `tight`, `fieldFont`, `toStyle`, `signStyle` | Optional layout tweaks |
@@ -132,7 +134,7 @@ index.html?mau=tet&giay=8&huong=ngang&mausac=do&nguoinhan=A|B
 
 | Param | Values |
 | --- | --- |
-| `mau` | template id: `camon`, `camonnho`, `kinhtang`, `dongchu`, `khung`, `sticker`, `tet`, `bieu`, `maukhoe`, `phunu`, `pn_hong`, `pn_sen`, `pn_nhi`, `nhanxinh`, `nhan2010`, `chaomung`, `huongdan`, `nhan` |
+| `mau` | template id: `camon`, `camonnho`, `kinhtang`, `dongchu`, `khung`, `sticker`, `sticker2`, `tet`, `bieu`, `maukhoe`, `phunu`, `pn_hong`, `pn_sen`, `pn_nhi`, `nhanxinh`, `nhan2010`, `chaomung`, `huongdan`, `nhan` |
 | `giay` | layout: `1`, `2`, `4`, `6`, `8`, `10`, `12`, `21`, `strip` |
 | `huong` | `doc` or `ngang` |
 | `mausac` | theme: `kem`, `do`, `trang`, `hong`, `ngoc`, `vang`, `dem`, `tim` |

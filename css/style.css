@@ -569,7 +569,7 @@ h3 { margin: 0 0 6px; font-size: 20px; }
 .card .t-title {
   font-family: var(--f-title);
   color: var(--c-title);
-  font-size: calc(var(--s-title) * var(--fit) * 1cqmin);
+  font-size: calc(var(--s-title) * var(--fit) * var(--ff-title, 1) * 1cqmin);
   font-weight: var(--w-title);
   font-style: var(--i-title);
   text-transform: var(--u-title);
@@ -587,9 +587,9 @@ h3 { margin: 0 0 6px; font-size: 20px; }
 .card .t-to { font-family: var(--f-to); color: var(--c-to); font-weight: var(--w-to); font-style: var(--i-to); text-transform: var(--u-to); }
 .card .t-msg { font-family: var(--f-msg); color: var(--c-msg); font-weight: var(--w-msg); font-style: var(--i-msg); text-transform: var(--u-msg); }
 .card .t-sign { font-family: var(--f-sign); color: var(--c-sign); font-weight: var(--w-sign); font-style: var(--i-sign); text-transform: var(--u-sign); }
-.card .t-to { font-size: calc(var(--s-to) * var(--fit) * 1cqmin); line-height: 1.3; text-wrap: balance; margin-bottom: calc(0.8cqmin * var(--fit)); }
-.card .t-msg { font-size: calc(var(--s-msg) * var(--fit) * 1cqmin); line-height: 1.5; text-wrap: pretty; }
-.card .t-sign { font-size: calc(var(--s-sign) * var(--fit) * 1cqmin); line-height: 1.3; }
+.card .t-to { font-size: calc(var(--s-to) * var(--fit) * var(--ff-to, 1) * 1cqmin); line-height: 1.3; text-wrap: balance; margin-bottom: calc(0.8cqmin * var(--fit)); }
+.card .t-msg { font-size: calc(var(--s-msg) * var(--fit) * var(--ff-msg, 1) * 1cqmin); line-height: 1.5; text-wrap: pretty; }
+.card .t-sign { font-size: calc(var(--s-sign) * var(--fit) * var(--ff-sign, 1) * 1cqmin); line-height: 1.3; }
 .card .st-italic { font-style: italic; }
 .card .st-bold { font-weight: 700; }
 .card .t-sign.al-auto { text-align: var(--sign-align); }
@@ -605,6 +605,7 @@ h3 { margin: 0 0 6px; font-size: 20px; }
 }
 .card .t-shop b { font-weight: 700; color: var(--c-title); }
 .card.tight .t-title, .card.tight .t-to, .card.tight .t-msg, .card.tight .t-sign { line-height: 1.18; margin-bottom: 0; }
+.card.tight .t-msg, .card.tight .t-title { text-wrap: balance; }
 .card .contour { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
 .measure-stage { position: fixed; left: -20000px; top: 0; visibility: hidden; pointer-events: none; }
 
