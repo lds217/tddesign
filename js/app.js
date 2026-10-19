@@ -867,7 +867,9 @@
     if (on) {
       const r = on.getBoundingClientRect();
       const b = row.getBoundingClientRect();
-      if (r.left < b.left || r.right > b.right) row.scrollLeft += r.left - b.left - 16;
+      // cuộn vừa đủ để thấy nút đang chọn (giữ nút "Tất cả" trong tầm mắt nếu được)
+      if (r.right > b.right) row.scrollLeft += Math.min(r.right - b.right + 28, r.left - b.left - 16);
+      else if (r.left < b.left) row.scrollLeft += r.left - b.left - 16;
     }
     const own = texts.filter((_, i) => hasOwn(state, i)).length;
     $('#cardHint').innerHTML = selCard < 0
@@ -878,6 +880,7 @@
     $('#cntOut').textContent = total;
     $('#cntDown').disabled = total <= 1;
     $('#cardActions').hidden = selCard < 0;
+    $('#cardsClearRow').hidden = selCard >= 0 || !own;
     $('#btnCardSame').hidden = !hasOwn(state, selCard);
     $('#btnCardDel').hidden = total <= 1;
   }
@@ -904,14 +907,15 @@
   }
 
   function syncUI() {
-    // Ô chữ (không ghi đè khi đang gõ)
+    // Ô chữ. Gõ chữ ghi thẳng vào state nên ô đang gõ luôn khớp; chỉ khác khi chữ đổi từ chỗ khác
+    // (chọn thiệp khác, Hoàn tác...). Trên iPhone bấm nút không làm ô chữ mất focus, nên vẫn phải ghi lại.
     const map = { title: '#fTitle', to: '#fTo', msg: '#fMsg', sign: '#fSign' };
     const texts = cardTexts(state);
     if (selCard >= texts.length) selCard = -1;
     FIELDS.forEach((k) => {
       const el = $(map[k]);
       const v = fieldValue(k, texts);
-      if (document.activeElement !== el && el.value !== v) el.value = v;
+      if (el.value !== v) el.value = v;
     });
     buildCardPick(texts);
     $('[data-fgroup="to"] .tip').hidden = selCard >= 0;
@@ -1426,6 +1430,8 @@
       const prev = clone(state);
       state.text = { ...TPL[state.tpl].text };
       state.edited = { title: false, to: false, msg: false, sign: false };
+      state.cards = [];
+      state.count = null;
       commit();
       toast('Đã dùng lại chữ mẫu', () => { state = prev; commit(); });
     });
@@ -1475,6 +1481,13 @@
       delete state.cards[selCard];
       commit();
       toast(`Thiệp số ${selCard + 1} đã giống chữ chung`, () => { state = prev; commit(); });
+    });
+    $('#btnCardsClear').addEventListener('click', () => {
+      const prev = clone(state);
+      const n = cardTexts(state).filter((_, i) => hasOwn(state, i)).length;
+      state.cards = [];
+      commit();
+      toast(`Đã cho ${n} thiệp giống chữ chung`, () => { state = prev; commit(); });
     });
     $('#btnCardDel').addEventListener('click', () => {
       const i = selCard;

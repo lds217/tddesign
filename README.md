@@ -6,7 +6,7 @@ No build step, no backend. All state is kept in `localStorage`.
 
 ## Features
 
-- 18 templates with SVG artwork in a Vietnamese style (swallows, hoa mai and hoa đào, lotus, roses, frangipani, lanterns, a Đông Sơn drum medallion, hồi văn and lattice frames, tường vân clouds, scalloped labels), grouped in the gallery with the current season's group first
+- 20 templates with SVG artwork in a Vietnamese style (swallows, hoa mai and hoa đào, lotus, roses, frangipani, lanterns, a Đông Sơn drum medallion, hồi văn and lattice frames, tường vân clouds, scalloped labels), grouped in the gallery with the current season's group first
 - Lettering templates: up to 4 lines, each with its own font, size, color, weight, italic and uppercase setting
 - Cut contour: an offset outline that follows the shape of the text, for cutting out stickers
 - 14 Google Fonts, each checked for full Vietnamese diacritic support
@@ -14,7 +14,7 @@ No build step, no backend. All state is kept in `localStorage`.
 - Faint flower backgrounds at three strengths, for any template: roses, peony, lotus, peach blossom and scattered blossoms, cut out from public-domain botanical plates (Redouté, Blanco, Siebold) — see `art/CREDITS.md`
 - Sheet layouts of 1, 2, 4, 6, 8, 10, 12 or 21 cards per A4, or 2–20 strips. Cards are rotated automatically when the card and slot orientations differ.
 - One card per recipient: a multi-line recipient field generates one card per line and paginates across sheets
-- Per-card editing: pick a card (chip row or tap it in the preview) and edit only that card; shared text still applies to every field a card hasn't overridden. Card count is adjustable and extra sheets are added automatically
+- Per-card editing: pick a card (chip row or tap it in the preview) and edit only that card; shared text still applies to every field a card hasn't overridden. Card count is adjustable, extra sheets are added automatically, and overrides can be cleared per card or all at once
 - Auto-fit: text shrinks until it fits the card
 - Saved templates (“Mẫu của tôi”) shown first in the template grid, with update-in-place, save-as-new, rename and delete; the user's own phrases; shop name, phone and logo. All persisted locally, with `navigator.storage.persist()` requested on first save
 - Two print paths: native `window.print()` at A4 with zero margins, and a PDF fallback (html2canvas + jsPDF) that is shared through the Web Share API
@@ -119,7 +119,7 @@ Templates are defined in `TEMPLATES` in `js/templates.js`:
 | `lines` | `true`: each of the 4 fields is styled as its own line |
 | `contour` | Default contour offset (`off`, `sat`, `vua`, `rong`) |
 | `group` | Gallery section (`2010`, `tet`, `camon`, `qua`, `chu`) |
-| `bgPat`, `patColor` | Default flower background (`hong`, `sen`, `dao`, `nhi`) and its color |
+| `bgPat`, `patColor` | Default flower background (`hong`, `mau`, `sen`, `dao`, `nhi`) and its color |
 | `order` | Fields shown and their order, e.g. `['to', 'title', 'msg', 'sign']` puts the name first; `['msg', 'to']` makes a 2-line template and hides the other inputs |
 | `fitFirst`, `fitFirstMin` | When text overflows, shrink only this field first (down to `fitFirstMin`) before shrinking the whole card, so e.g. the name keeps its size |
 | `labels` | Extra hint after “Dòng N” in the editor, per field |
@@ -135,7 +135,7 @@ index.html?mau=tet&giay=8&huong=ngang&mausac=do&nguoinhan=A|B
 
 | Param | Values |
 | --- | --- |
-| `mau` | template id: `camon`, `camonnho`, `kinhtang`, `dongchu`, `khung`, `sticker`, `sticker2`, `tet`, `bieu`, `maukhoe`, `phunu`, `pn_hong`, `pn_sen`, `pn_nhi`, `nhanxinh`, `nhan2010`, `chaomung`, `huongdan`, `nhan` |
+| `mau` | template id: `camon`, `camonnho`, `kinhtang`, `dongchu`, `khung`, `sticker`, `sticker2`, `tet`, `bieu`, `maukhoe`, `phunu`, `pn_hong`, `pn_mau`, `pn_sen`, `pn_nhi`, `nhanxinh`, `nhan2010`, `chaomung`, `huongdan`, `nhan` |
 | `giay` | layout: `1`, `2`, `4`, `6`, `8`, `10`, `12`, `21`, `strip` |
 | `huong` | `doc` or `ngang` |
 | `mausac` | theme: `kem`, `do`, `trang`, `hong`, `ngoc`, `vang`, `dem`, `tim` |
