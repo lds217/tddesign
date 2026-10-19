@@ -14,6 +14,7 @@ No build step, no backend. All state is kept in `localStorage`.
 - Faint flower backgrounds at three strengths, for any template: roses, peony, lotus, peach blossom and scattered blossoms, cut out from public-domain botanical plates (Redouté, Blanco, Siebold) — see `art/CREDITS.md`
 - Sheet layouts of 1, 2, 4, 6, 8, 10, 12 or 21 cards per A4, or 2–20 strips. Cards are rotated automatically when the card and slot orientations differ.
 - One card per recipient: a multi-line recipient field generates one card per line and paginates across sheets
+- Per-card editing: pick a card (chip row or tap it in the preview) and edit only that card; shared text still applies to every field a card hasn't overridden. Card count is adjustable and extra sheets are added automatically
 - Auto-fit: text shrinks until it fits the card
 - Saved templates (“Mẫu của tôi”) shown first in the template grid, with update-in-place, save-as-new, rename and delete; the user's own phrases; shop name, phone and logo. All persisted locally, with `navigator.storage.persist()` requested on first save
 - Two print paths: native `window.print()` at A4 with zero margins, and a PDF fallback (html2canvas + jsPDF) that is shared through the Web Share API
@@ -95,7 +96,7 @@ Each distinct card is rasterized upright with html2canvas, because html2canvas d
 
 | Key | Holds |
 | --- | --- |
-| `thiepyen.state.v1` | current design |
+| `thiepyen.state.v1` | current design, including `cards` (per-card overrides) and `count` |
 | `thiepyen.shop.v1` | shop name, phone and logo |
 | `thiepyen.saved.v1` | saved templates (“Mẫu của tôi”): `{ id, name, ts, state }` |
 | `thiepyen.phrases.v1` | the user's own saved phrases (“Câu chúc của tôi”) |

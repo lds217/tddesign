@@ -101,6 +101,23 @@
 
         <!-- ============ CHỮ ============ -->
         <div class="tab" data-tab="chu" hidden>
+          <div class="cardpick" id="cardPick">
+            <span class="label">Sửa chữ cho</span>
+            <div class="chips-scroll" id="cardChips" role="group" aria-label="Chọn thiệp để sửa"></div>
+            <div class="cardcount">
+              <span>Số thiệp in</span>
+              <div class="stepper">
+                <button type="button" id="cntDown" aria-label="Bớt 1 thiệp">−</button>
+                <output id="cntOut">4</output>
+                <button type="button" id="cntUp" aria-label="Thêm 1 thiệp">+</button>
+              </div>
+            </div>
+            <p class="hint" id="cardHint"></p>
+            <div class="cardactions" id="cardActions" hidden>
+              <button class="link-btn" id="btnCardSame" type="button">↺ Cho thiệp này giống chữ chung</button>
+              <button class="link-btn danger" id="btnCardDel" type="button">✕ Bỏ thiệp này</button>
+            </div>
+          </div>
           <div class="fgroup" data-fgroup="title">
           <label class="field">
             <span class="label" id="lb-title">Tiêu đề</span>
@@ -418,7 +435,8 @@
     <div class="tips">
       <b>Mẹo hay</b>
       <ul>
-        <li>Muốn mỗi thiệp một tên khác nhau: ở ô <b>Gửi đến</b>, mỗi người viết một dòng.</li>
+        <li>Muốn mỗi thiệp một chữ khác: ở mục <b>Chữ</b> bấm số của thiệp (1, 2, 3...) hoặc bấm thẳng vào thiệp ở hình trên, rồi sửa. Bấm <b>Tất cả</b> để sửa chung.</li>
+        <li>Muốn nhanh nhiều tên: ở ô <b>Gửi đến</b> (lúc chọn Tất cả), mỗi người viết một dòng.</li>
         <li>Mục <b>Khổ giấy</b>: chọn 1 tờ A4 in 1, 2, 4, 8... thiệp. Chọn <b>Dải chữ</b> để in nhiều dòng chữ màu.</li>
         <li>Thiệp ưng ý thì bấm <b>Lưu mẫu</b> — lần sau mở mục <b>Mẫu</b> là có ngay. Lời chúc hay dùng thì bấm <b>“Lưu lời nhắn này”</b>.</li>
         <li id="a2hsTip"><b>Mở nhanh như ứng dụng:</b> trong Safari bấm nút Chia sẻ <span class="share-ico" aria-hidden="true">⬆︎</span> → <b>Thêm vào MH chính</b>.</li>

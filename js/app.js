@@ -93,6 +93,8 @@
       showShop: !!t.shop,
       savedId: null, // mẫu của tôi đang mở (nếu có)
       text: { ...t.text },
+      cards: [], // chữ riêng của từng thiệp: cards[i] = { title?, to?, msg?, sign? } (chỉ ô đã sửa)
+      count: null, // số thiệp cố định (null = tự động: đầy 1 tờ, hoặc 1 thiệp mỗi tên)
       edited: { title: false, to: false, msg: false, sign: false },
       style,
       colors: { title: null, body: null, to: null, msg: null, sign: null, ...(t.colors || {}) },
@@ -101,6 +103,8 @@
     if (prev) FIELDS.forEach((k) => {
       if (prev.edited && prev.edited[k]) { s.text[k] = prev.text[k]; s.edited[k] = true; }
     });
+    // ...và chữ riêng của từng thiệp
+    if (prev) { s.cards = clone(prev.cards || []); s.count = prev.count == null ? null : prev.count; }
     return s;
   }
 
@@ -128,6 +132,14 @@
       if (isObj(s.text) && typeof s.text[k] === 'string') out.text[k] = s.text[k];
       if (isObj(s.edited) && typeof s.edited[k] === 'boolean') out.edited[k] = s.edited[k];
     });
+    out.cards = [];
+    if (Array.isArray(s.cards)) s.cards.slice(0, 300).forEach((c, i) => {
+      if (!isObj(c)) return;
+      const o = {};
+      FIELDS.forEach((k) => { if (typeof c[k] === 'string') o[k] = c[k].slice(0, 3000); });
+      if (Object.keys(o).length) out.cards[i] = o;
+    });
+    out.count = Number.isInteger(s.count) && s.count >= 1 && s.count <= 300 ? s.count : null;
     out.colors = { ...base.colors };
     if (isObj(s.colors)) Object.keys(out.colors).forEach((k) => {
       const c = s.colors[k];
@@ -199,6 +211,7 @@
     } catch (e) { /* bỏ qua */ }
   }
   let part = 'title'; // phần đang chỉnh kiểu chữ
+  let selCard = -1; // -1 = sửa chung cho tất cả thiệp; i = chỉ sửa thiệp số i+1
 
   const saveState = debounce(() => store.set(KEY.state, state), 300);
   const saveShop = () => store.set(KEY.shop, shop);
@@ -233,6 +246,30 @@
   const MAX_CARDS = 300;
   function recipients(st) {
     return String(st.text.to || '').split('\n').map((s) => s.trim()).filter(Boolean).slice(0, MAX_CARDS);
+  }
+
+  const hasOwn = (st, i) => !!(st.cards && st.cards[i] && Object.keys(st.cards[i]).length);
+  // Số thiệp: theo số đã chọn (+ / Bỏ thiệp), nếu không thì đầy 1 tờ (hoặc 1 thiệp mỗi tên)
+  function totalCards(st, g) {
+    const n = recipients(st).length;
+    if (st.count != null) return Math.min(MAX_CARDS, n > 1 ? Math.max(st.count, n) : st.count);
+    let last = 0;
+    (st.cards || []).forEach((c, i) => { if (c && Object.keys(c).length) last = i + 1; });
+    return Math.min(MAX_CARDS, Math.max(n > 1 ? n : g.per, last));
+  }
+  // Chữ của từng thiệp = chữ chung, thay bằng chữ riêng ở ô nào thiệp đó đã sửa
+  function cardTexts(st, g) {
+    const names = recipients(st);
+    const multi = names.length > 1;
+    const out = [];
+    const total = totalCards(st, g || geometry(st));
+    for (let i = 0; i < total; i++) {
+      const tx = { title: st.text.title, to: multi ? names[i] || '' : names[0] || '', msg: st.text.msg, sign: st.text.sign };
+      const o = st.cards && st.cards[i];
+      if (o) FIELDS.forEach((k) => { if (typeof o[k] === 'string') tx[k] = o[k]; });
+      out.push(tx);
+    }
+    return out;
   }
 
   // Kiểu chữ thực tế của từng ô chữ
@@ -270,7 +307,7 @@
     return k ? r2(Math.min(7, Math.max(1.2, Math.min(w, h) * k))) : 0;
   }
 
-  function cardHTML(st, w, h, to, rotate, key) {
+  function cardHTML(st, w, h, tx, rotate, key) {
     const t = TPL[st.tpl];
     const th = THEMES[st.theme];
     const deco = st.deco && t.deco;
@@ -305,13 +342,12 @@
       return extra ? 'st-' + extra : '';
     };
 
-    const tx = st.text;
     const withShop = st.showShop && (shop.name || shop.phone || shop.extra);
     let stack = '';
     if (st.showShop && shop.logo && shop.showLogo) stack += `<img class="t-logo" src="${shop.logo}" alt="">`;
     const piece = {
       title: () => (tx.title ? `<div class="t-title">${esc(tx.title)}</div>` + (t.divider && deco ? O.divider(th.frame) : '') : ''),
-      to: () => (to ? `<div class="t-to ${cls('to')}">${esc(to)}</div>` : ''),
+      to: () => (tx.to ? `<div class="t-to ${cls('to')}">${esc(tx.to)}</div>` : ''),
       msg: () => (tx.msg ? `<div class="t-msg">${esc(tx.msg)}</div>` : ''),
       sign: () => (tx.sign ? `<div class="t-sign al-auto ${cls('sign')}">${esc(tx.sign)}</div>` : ''),
     };
@@ -354,9 +390,8 @@
 
   function buildSheets(st) {
     const g = geometry(st);
-    const names = recipients(st);
-    const multi = names.length > 1;
-    const total = multi ? names.length : g.per;
+    const texts = cardTexts(st, g);
+    const total = texts.length;
     const nSheets = Math.max(1, Math.ceil(total / g.per));
     let html = '';
     for (let p = 0; p < nSheets; p++) {
@@ -368,11 +403,10 @@
         used++;
         const r = Math.floor(i / g.cols);
         const c = i % g.cols;
-        const to = multi ? names[idx] : names[0] || '';
-        slots += `<div class="slot" style="left:${r2(SHEET.m + c * g.sw)}mm;top:${r2(SHEET.m + r * g.sh)}mm;width:${r2(g.sw)}mm;height:${r2(g.sh)}mm">${cardHTML(st, g.cw, g.ch, to, g.rotate, multi ? 'n' + idx : 'all')}</div>`;
+        slots += `<div class="slot" data-i="${idx}" data-n="${idx + 1}" style="left:${r2(SHEET.m + c * g.sw)}mm;top:${r2(SHEET.m + r * g.sh)}mm;width:${r2(g.sw)}mm;height:${r2(g.sh)}mm">${cardHTML(st, g.cw, g.ch, texts[idx], g.rotate, 'c' + idx)}</div>`;
       }
       const label = nSheets > 1 ? `Tờ ${p + 1}/${nSheets}` : '';
-      html += `<div class="sheet-wrap${nSheets > 1 ? '' : ' one'}" data-page="${label}"><div class="sheet" style="width:${SHEET.w}mm;height:${SHEET.h}mm">${slots}${st.cut ? cutLinesSVG(g, used) : ''}</div></div>`;
+      html += `<div class="sheet-wrap${nSheets > 1 ? '' : ' one'}${total > 1 ? ' many' : ''}" data-page="${label}"><div class="sheet" style="width:${SHEET.w}mm;height:${SHEET.h}mm">${slots}${st.cut ? cutLinesSVG(g, used) : ''}</div></div>`;
     }
     return { html, nSheets, total, g };
   }
@@ -537,8 +571,8 @@
     const w = g.cw * PX;
     const h = g.ch * PX;
     const s = Math.min(maxW / w, maxH / h);
-    const to = recipients(st)[0] || '';
-    return `<div class="thumb-box" style="width:${r2(w * s)}px;height:${r2(h * s)}px"><div class="card-host" style="transform:scale(${s.toFixed(4)})">${cardHTML(st, g.cw, g.ch, to, false, 'thumb')}</div></div>`;
+    const tx = cardTexts(st, g)[0];
+    return `<div class="thumb-box" style="width:${r2(w * s)}px;height:${r2(h * s)}px"><div class="card-host" style="transform:scale(${s.toFixed(4)})">${cardHTML(st, g.cw, g.ch, tx, false, 'thumb')}</div></div>`;
   }
 
   /* ================= Xem trước ================= */
@@ -551,6 +585,8 @@
     finish($('#sheets'));
     checkWarn();
     const { g, nSheets, total } = last;
+    if (selCard >= total) selCard = -1;
+    markSelected();
     $('#sheetInfo').textContent = `${nSheets} tờ A4 · ${total} thiệp · ${cm(g.cw)}×${cm(g.ch)} cm`;
   }
 
@@ -794,13 +830,92 @@
     $$(sel).forEach((b) => b.setAttribute('aria-pressed', String(!!fn(b))));
   }
 
+  /* ---------- Sửa riêng từng thiệp ---------- */
+  function markSelected(scroll) {
+    $$('#sheets .slot.sel').forEach((el) => el.classList.remove('sel'));
+    const el = selCard >= 0 ? $(`#sheets .slot[data-i="${selCard}"]`) : null;
+    $('#sheets').classList.toggle('picking', !!el);
+    if (!el) return;
+    el.classList.add('sel');
+    if (scroll) {
+      // cuộn hình xem trước tới thiệp đang sửa (có thể ở tờ thứ 2, 3...)
+      const box = $('#preview');
+      const r = el.getBoundingClientRect();
+      const b = box.getBoundingClientRect();
+      if (r.top < b.top || r.bottom > b.bottom) box.scrollTop += r.top - b.top - (b.height - r.height) / 2;
+    }
+  }
+
+  function shortLabel(tx) {
+    const s = String(tx.to || tx.title || tx.msg || '').split('\n')[0].trim();
+    return s.length > 14 ? s.slice(0, 13) + '…' : s;
+  }
+
+  function buildCardPick(texts) {
+    const total = texts.length;
+    let h = `<button type="button" class="chip cardchip" data-card="-1" aria-pressed="${selCard < 0}">Tất cả</button>`;
+    texts.forEach((tx, i) => {
+      const lb = shortLabel(tx);
+      h += `<button type="button" class="chip cardchip${hasOwn(state, i) ? ' own' : ''}" data-card="${i}" aria-pressed="${selCard === i}" aria-label="Thiệp số ${i + 1}">${i + 1}${lb ? `<span>· ${esc(lb)}</span>` : ''}</button>`;
+    });
+    if (total < MAX_CARDS) h += '<button type="button" class="chip cardchip add" data-card="add">＋ Thêm thiệp</button>';
+    const row = $('#cardChips');
+    const keep = row.scrollLeft;
+    row.innerHTML = h;
+    row.scrollLeft = keep;
+    const on = row.querySelector('[aria-pressed="true"]');
+    if (on) {
+      const r = on.getBoundingClientRect();
+      const b = row.getBoundingClientRect();
+      if (r.left < b.left || r.right > b.right) row.scrollLeft += r.left - b.left - 16;
+    }
+    const own = texts.filter((_, i) => hasOwn(state, i)).length;
+    $('#cardHint').innerHTML = selCard < 0
+      ? (total > 1
+        ? `Đang sửa <b>chung cho cả ${total} thiệp</b>. Muốn một thiệp khác chữ thì bấm số của thiệp đó (hoặc bấm vào thiệp ở hình trên).${own ? ` <br>${own} thiệp đang có chữ riêng (chấm cam).` : ''}`
+        : 'Bấm <b>＋ Thêm thiệp</b> để in thêm thiệp với chữ khác.')
+      : `Đang sửa <b>riêng thiệp số ${selCard + 1}</b> — chữ gõ ở đây chỉ đổi thiệp này. Bấm <b>Tất cả</b> để sửa chung.`;
+    $('#cntOut').textContent = total;
+    $('#cntDown').disabled = total <= 1;
+    $('#cardActions').hidden = selCard < 0;
+    $('#btnCardSame').hidden = !hasOwn(state, selCard);
+    $('#btnCardDel').hidden = total <= 1;
+  }
+
+  // Chữ đang hiện trong ô nhập: chữ chung, hoặc chữ của thiệp đang chọn
+  function fieldValue(k, texts) {
+    return selCard >= 0 && texts[selCard] ? texts[selCard][k] : state.text[k];
+  }
+
+  function setField(k, v) {
+    if (selCard >= 0) {
+      if (!state.cards[selCard]) state.cards[selCard] = {};
+      state.cards[selCard][k] = v;
+    } else {
+      state.text[k] = v;
+      state.edited[k] = true;
+    }
+  }
+
+  function selectCard(i, scroll) {
+    selCard = i;
+    syncUI();
+    markSelected(scroll);
+  }
+
   function syncUI() {
     // Ô chữ (không ghi đè khi đang gõ)
     const map = { title: '#fTitle', to: '#fTo', msg: '#fMsg', sign: '#fSign' };
+    const texts = cardTexts(state);
+    if (selCard >= texts.length) selCard = -1;
     FIELDS.forEach((k) => {
       const el = $(map[k]);
-      if (document.activeElement !== el && el.value !== state.text[k]) el.value = state.text[k];
+      const v = fieldValue(k, texts);
+      if (document.activeElement !== el && el.value !== v) el.value = v;
     });
+    buildCardPick(texts);
+    $('[data-fgroup="to"] .tip').hidden = selCard >= 0;
+    $('#btnResetText').hidden = selCard >= 0;
     const n = recipients(state).length;
     const raw = String(state.text.to || '').split('\n').filter((x) => x.trim()).length;
     $('#toCount').textContent = raw > MAX_CARDS
@@ -898,6 +1013,7 @@
 
   /* ================= Tab ================= */
   function showTab(name) {
+    document.body.classList.toggle('tab-chu', name === 'chu');
     $$('.tabbar [role="tab"]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
     $$('.tab').forEach((t) => (t.hidden = t.dataset.tab !== name));
     $('#panelScroll').scrollTop = 0;
@@ -1039,13 +1155,14 @@
       document.body.appendChild(stage);
 
       const g = geometry(state);
-      const names = recipients(state);
-      const multi = names.length > 1;
-      const total = multi ? names.length : g.per;
+      const texts = cardTexts(state, g);
+      const total = texts.length;
       const nSheets = Math.max(1, Math.ceil(total / g.per));
       const k = PDF_SCALE * PX; // px trên mỗi mm
       const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
-      let shared = null;
+      // Thiệp giống hệt nhau chỉ chụp 1 lần; giữ vài ảnh gần nhất để không tốn bộ nhớ iPhone
+      const shots = new Map();
+      const freeShot = (c) => { c.width = 0; c.height = 0; };
 
       for (let p = 0; p < nSheets; p++) {
         busy(true, `Đang tạo file PDF… tờ ${p + 1}/${nSheets}`);
@@ -1060,10 +1177,16 @@
           const idx = p * g.per + i;
           if (idx >= total) break;
           used++;
-          let img = shared;
-          if (!img || multi) {
-            img = await captureCard(stage, cardHTML(state, g.cw, g.ch, multi ? names[idx] : names[0] || '', false, 'pdf'));
-            if (!multi) shared = img;
+          const sig = JSON.stringify(texts[idx]);
+          let img = shots.get(sig);
+          if (!img) {
+            img = await captureCard(stage, cardHTML(state, g.cw, g.ch, texts[idx], false, 'pdf'));
+            shots.set(sig, img);
+            if (shots.size > 4) {
+              const oldest = shots.keys().next().value;
+              freeShot(shots.get(oldest));
+              shots.delete(oldest);
+            }
           }
           const cx = (SHEET.m + (i % g.cols) * g.sw + g.sw / 2) * k;
           const cy = (SHEET.m + Math.floor(i / g.cols) * g.sh + g.sh / 2) * k;
@@ -1074,7 +1197,6 @@
           if (g.rotate) ctx.rotate(Math.PI / 2);
           ctx.drawImage(img, -w / 2, -h / 2, w, h);
           ctx.restore();
-          if (multi) { img.width = 0; img.height = 0; }
         }
         if (state.cut) drawCutLines(ctx, g, used, k);
         if (p) pdf.addPage('a4', 'portrait');
@@ -1082,6 +1204,7 @@
         page.width = 0;
         page.height = 0;
       }
+      shots.forEach(freeShot);
       const blob = pdf.output('blob');
       const d = new Date();
       const name = `thiep-${state.tpl}-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.pdf`;
@@ -1251,7 +1374,7 @@
     // Câu chúc của tôi
     $('#btnSavePhrase').addEventListener('click', () => {
       commitSoon.flush();
-      const msg = String(state.text.msg || '').trim();
+      const msg = String(fieldValue('msg', cardTexts(state)) || '').trim();
       if (!msg) { toast('Chưa có lời nhắn để lưu.'); return; }
       if (myPhrases.includes(msg)) { toast('Câu này đã có trong “Câu chúc của tôi”.'); return; }
       myPhrases.unshift(msg);
@@ -1268,20 +1391,17 @@
     // Ô chữ
     $$('[data-field]').forEach((el) => {
       el.addEventListener('input', () => {
-        const k = el.dataset.field;
-        state.text[k] = el.value;
-        state.edited[k] = true;
+        setField(el.dataset.field, el.value);
         commitSoon();
       });
     });
     $('#titleChips').addEventListener('click', (e) => {
       const b = e.target.closest('[data-title]');
       if (!b) return;
-      const prev = state.text.title;
-      state.text.title = b.dataset.title;
-      state.edited.title = true;
+      const prev = clone(state);
+      setField('title', b.dataset.title);
       commit();
-      toast('Đã đổi tiêu đề', () => { state.text.title = prev; commit(); });
+      toast('Đã đổi tiêu đề', () => { state = prev; commit(); });
     });
     $('#btnPhrases').addEventListener('click', () => openModal('#mPhrases'));
     $('#phraseList').addEventListener('click', (e) => {
@@ -1296,12 +1416,11 @@
       }
       const b = e.target.closest('[data-phrase]');
       if (!b) return;
-      const prev = state.text.msg;
-      state.text.msg = b.dataset.phrase;
-      state.edited.msg = true;
+      const prev = clone(state);
+      setField('msg', b.dataset.phrase);
       closeModal($('#mPhrases'));
       commit();
-      toast('Đã thay lời nhắn', () => { state.text.msg = prev; commit(); });
+      toast(selCard >= 0 ? `Đã thay lời nhắn thiệp số ${selCard + 1}` : 'Đã thay lời nhắn', () => { state = prev; commit(); });
     });
     $('#btnResetText').addEventListener('click', () => {
       const prev = clone(state);
@@ -1309,6 +1428,73 @@
       state.edited = { title: false, to: false, msg: false, sign: false };
       commit();
       toast('Đã dùng lại chữ mẫu', () => { state = prev; commit(); });
+    });
+
+    // Sửa riêng từng thiệp
+    $('#cardChips').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-card]');
+      if (!b) return;
+      commitSoon.flush();
+      if (b.dataset.card === 'add') {
+        const total = cardTexts(state).length;
+        state.count = total + 1;
+        commit();
+        selCard = total;
+        requestAnimationFrame(() => requestAnimationFrame(() => markSelected(true)));
+        toast(`Đã thêm thiệp số ${total + 1}. Gõ chữ cho thiệp này ở dưới.`);
+        return;
+      }
+      selectCard(+b.dataset.card, true);
+    });
+    $('#cntUp').addEventListener('click', () => {
+      commitSoon.flush();
+      const total = cardTexts(state).length;
+      if (total >= MAX_CARDS) return;
+      state.count = total + 1;
+      commit();
+    });
+    $('#cntDown').addEventListener('click', () => {
+      commitSoon.flush();
+      const total = cardTexts(state).length;
+      if (total <= 1) return;
+      const prev = clone(state);
+      const last = total - 1;
+      const hadOwn = hasOwn(state, last);
+      delete state.cards[last];
+      state.cards.length = Math.min(state.cards.length, last);
+      const names = recipients(state);
+      if (names.length > 1 && last < names.length) state.text.to = names.slice(0, last).join('\n');
+      state.count = last;
+      if (selCard >= last) selCard = -1;
+      commit();
+      if (hadOwn) toast(`Đã bỏ thiệp số ${total}`, () => { state = prev; commit(); });
+    });
+    $('#btnCardSame').addEventListener('click', () => {
+      if (selCard < 0) return;
+      const prev = clone(state);
+      delete state.cards[selCard];
+      commit();
+      toast(`Thiệp số ${selCard + 1} đã giống chữ chung`, () => { state = prev; commit(); });
+    });
+    $('#btnCardDel').addEventListener('click', () => {
+      const i = selCard;
+      const texts = cardTexts(state);
+      if (i < 0 || texts.length <= 1) return;
+      const prev = clone(state);
+      const prevSel = selCard;
+      // bỏ chữ riêng của thiệp này, các thiệp sau dồn lên
+      const cards = [];
+      for (let j = 0; j < texts.length; j++) if (j !== i && state.cards[j]) cards[j < i ? j : j - 1] = state.cards[j];
+      state.cards = cards;
+      const names = recipients(state);
+      if (names.length > 1 && i < names.length) {
+        names.splice(i, 1);
+        state.text.to = names.join('\n');
+      }
+      state.count = texts.length - 1;
+      selCard = Math.min(i, texts.length - 2);
+      commit();
+      toast(`Đã bỏ thiệp số ${i + 1}`, () => { state = prev; selCard = prevSel; commit(); });
     });
 
     // Ẩn thanh tab khi đang gõ để có thêm chỗ
@@ -1465,7 +1651,18 @@
     // Hướng dẫn, xem to
     $('#btnHelp').addEventListener('click', () => openModal('#mHelp'));
     $('#btnZoom').addEventListener('click', openZoom);
-    $('#preview').addEventListener('click', (e) => { if (e.target.closest('.sheet-wrap')) openZoom(); });
+    // Bấm vào một thiệp trên hình xem trước → sửa riêng thiệp đó (nếu tờ có nhiều thiệp); chỗ khác → xem to
+    $('#preview').addEventListener('click', (e) => {
+      const slot = e.target.closest('.slot');
+      if (slot && last && last.total > 1) {
+        const i = +slot.dataset.i;
+        showTab('chu');
+        selectCard(i);
+        toast(`Đang sửa riêng thiệp số ${i + 1}`);
+      } else if (e.target.closest('.sheet-wrap')) {
+        openZoom();
+      }
+    });
     $('#zoomIn').addEventListener('click', () => { zoomK = Math.min(3, zoomK * 1.35); sizeZoom(); });
     $('#zoomOut').addEventListener('click', () => { zoomK = Math.max(0.4, zoomK / 1.35); sizeZoom(); });
 

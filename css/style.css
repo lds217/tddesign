@@ -211,6 +211,38 @@ h3 { margin: 0 0 6px; font-size: 20px; }
 .chips-scroll::-webkit-scrollbar { display: none; }
 .chips-scroll .chip { flex: none; min-height: 38px; font-size: 15px; }
 
+/* Chọn thiệp để sửa riêng */
+.cardpick { margin: 0 0 6px; padding: 12px 12px 4px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; }
+.cardpick .label { margin-bottom: 8px; }
+.cardpick .chips-scroll { margin: 0 -12px; padding: 2px 12px 8px; }
+.cardchip { gap: 4px; max-width: 170px; }
+.cardchip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.cardchip[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: #fff; font-weight: 600; }
+.cardchip[aria-pressed="true"] span { color: rgba(255, 255, 255, .85); }
+.cardchip.own::after { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #E8590C; }
+.cardchip.add { border-style: dashed; color: var(--red); font-weight: 600; }
+.cardpick .hint { margin: 2px 0 8px; }
+.cardcount { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 8px; font-size: 15px; font-weight: 600; }
+.cardcount .stepper button { width: 46px; height: 40px; font-size: 22px; }
+.cardcount .stepper output { min-width: 44px; }
+.cardactions { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: -4px 0 4px; }
+.cardactions .link-btn { margin: 0; padding: 8px 0; }
+
+/* Trên hình xem trước: số thứ tự từng thiệp (khi đang ở mục Chữ) và khung đỏ quanh thiệp đang sửa */
+body.tab-chu .sheet-wrap.many .slot::before {
+  content: attr(data-n); position: absolute; left: 2mm; top: 2mm; z-index: 4;
+  min-width: 11mm; height: 11mm; padding: 0 2mm; border-radius: 5.5mm;
+  background: rgba(42, 28, 18, .78); color: #fff; font: 700 7mm/11mm 'Be Vietnam Pro', sans-serif; text-align: center;
+  pointer-events: none;
+}
+/* Đang sửa riêng một thiệp: làm mờ các thiệp khác, viền đỏ đậm quanh thiệp đang sửa */
+.sheets.picking .slot::after {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: rgba(255, 255, 255, .6);
+}
+.sheets.picking .slot.sel::after { background: none; outline: 2.4mm solid #E03131; outline-offset: -1.2mm; }
+body.tab-chu .slot.sel::before { background: #E03131; }
+
 .btn-wide {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   width: 100%; min-height: 52px; margin: 10px 0;
@@ -633,6 +665,7 @@ h3 { margin: 0 0 6px; font-size: 20px; }
   .sheet-wrap:last-child { break-after: auto; page-break-after: auto; }
   .sheet-wrap::after { display: none; }
   .sheet { transform: none !important; }
+  .slot::before, .slot::after { display: none !important; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 
