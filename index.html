@@ -155,6 +155,37 @@
             <textarea id="fSign" data-field="sign" rows="2" autocomplete="off" placeholder="VD: Trân trọng cảm ơn!"></textarea>
           </label>
           </div>
+          <!-- Các ô riêng của thẻ hướng dẫn (ẩn ở mẫu khác) -->
+          <div class="fgroup" data-fgroup="note" hidden>
+          <label class="field">
+            <span class="label" id="lb-note">Ô bảo quản</span>
+            <textarea id="fNote" data-field="note" rows="2" autocomplete="off"></textarea>
+          </label>
+          </div>
+
+          <div class="fgroup" data-fgroup="bad" hidden>
+          <label class="field">
+            <span class="label" id="lb-bad">Ô lưu ý</span>
+            <textarea id="fBad" data-field="bad" rows="5" autocomplete="off"></textarea>
+          </label>
+          <p class="hint">Mỗi dòng là một ý. Dòng đầu có dấu <b>“:”</b> ở cuối là tên ô. Xóa hết chữ thì ô này không in.</p>
+          </div>
+
+          <div class="fgroup" data-fgroup="good" hidden>
+          <label class="field">
+            <span class="label" id="lb-good">Ô cách dùng</span>
+            <textarea id="fGood" data-field="good" rows="4" autocomplete="off"></textarea>
+          </label>
+          <p class="hint">Mỗi dòng là một ý. Dòng đầu có dấu <b>“:”</b> ở cuối là tên ô.</p>
+          </div>
+
+          <div class="fgroup" data-fgroup="date" hidden>
+          <label class="field">
+            <span class="label" id="lb-date">Hạn sử dụng</span>
+            <textarea id="fDate" data-field="date" rows="1" autocomplete="off"></textarea>
+          </label>
+          <p class="hint">💡 Để chấm chấm thì in ra viết tay. Muốn gõ ngày riêng cho từng hộp: bấm số thiệp ở trên cùng rồi sửa ô này.</p>
+          </div>
           <div id="fieldsEnd" hidden></div>
 
           <label class="switch-row">

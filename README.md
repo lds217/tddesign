@@ -6,12 +6,13 @@ No build step, no backend. All state is kept in `localStorage`.
 
 ## Features
 
-- 20 templates with SVG artwork in a Vietnamese style (swallows, hoa mai and hoa đào, lotus, roses, frangipani, lanterns, a Đông Sơn drum medallion, hồi văn and lattice frames, tường vân clouds, scalloped labels), grouped in the gallery with the current season's group first
+- 21 templates with SVG artwork in a Vietnamese style (swallows, hoa mai and hoa đào, lotus, roses, frangipani, lanterns, a Đông Sơn drum medallion, hồi văn and lattice frames, tường vân clouds, scalloped labels), grouped in the gallery with the current season's group first
 - Lettering templates: up to 4 lines, each with its own font, size, color, weight, italic and uppercase setting
+- Usage-guide insert card ("Hướng dẫn sử dụng"): title band, greeting, storage note, a ✗ list and a ✓ list, expiry date, thanks and hotline. Every section is an editable field and empty sections are left out; the expiry date can differ per card
 - Cut contour: an offset outline that follows the shape of the text, for cutting out stickers
 - 14 Google Fonts, each checked for full Vietnamese diacritic support
 - 8 color themes, plus a text color for each part of the card
-- Faint flower backgrounds at three strengths, for any template: roses, peony, lotus, peach blossom and scattered blossoms, cut out from public-domain botanical plates (Redouté, Blanco, Siebold) — see `art/CREDITS.md`
+- Faint flower backgrounds at three strengths, for any template: roses, peony, lotus, peach blossom and scattered blossoms, cut out from public-domain botanical plates (Redouté, Blanco, Siebold, Köhler) — see `art/CREDITS.md`
 - Sheet layouts of 1, 2, 4, 6, 8, 10, 12 or 21 cards per A4, or 2–20 strips. Cards are rotated automatically when the card and slot orientations differ.
 - One card per recipient: a multi-line recipient field generates one card per line and paginates across sheets
 - Per-card editing: pick a card (chip row or tap it in the preview) and edit only that card; shared text still applies to every field a card hasn't overridden. Card count is adjustable, extra sheets are added automatically, and overrides can be cleared per card or all at once
@@ -46,7 +47,7 @@ js/templates.js       fonts, themes, templates, title presets, phrases
 js/app.js             state, rendering, auto-fit, UI bindings, print/PDF
 vendor/               html2canvas 1.4.1, jsPDF 4.2.1 (lazy-loaded for PDF export)
 art/                  flower artwork (WebP with transparency) and CREDITS.md
-tools/make_art.py     rebuilds art/ from the original Commons scans (Pillow, numpy, scipy)
+tools/make_art.py     rebuilds art/ from the original Commons scans (Pillow, numpy, scipy); pass crop names to rebuild only those
 icons/                app icons
 manifest.webmanifest  PWA manifest
 sw.js                 service worker
@@ -110,7 +111,7 @@ Templates are defined in `TEMPLATES` in `js/templates.js`:
 | --- | --- |
 | `id`, `name` | Identifier and display name |
 | `theme`, `layout`, `orient` | Defaults (`orient`: `portrait` / `landscape`) |
-| `text` | Default `title`, `to`, `msg`, `sign` |
+| `text` | Default `title`, `to`, `msg`, `sign` (and `note`, `bad`, `good`, `date` for the usage-guide layout) |
 | `style` | Per-part font settings (`font`, `bold`, `italic`, `upper`, `align`) |
 | `colors` | Optional per-part text colors |
 | `sizes` | Font sizes as a % of the card's short side (`title`, `to`, `msg`, `sign`, `shop`) |
@@ -118,11 +119,14 @@ Templates are defined in `TEMPLATES` in `js/templates.js`:
 | `deco(w, h, m, theme)` | Returns the SVG artwork, or `null` for none |
 | `lines` | `true`: each of the 4 fields is styled as its own line |
 | `contour` | Default contour offset (`off`, `sat`, `vua`, `rong`) |
-| `group` | Gallery section (`2010`, `tet`, `camon`, `qua`, `chu`) |
+| `group` | Gallery section (`2010`, `tet`, `camon`, `hd`, `qua`, `chu`) |
 | `bgPat`, `patColor` | Default flower background (`hong`, `mau`, `sen`, `dao`, `nhi`) and its color |
 | `order` | Fields shown and their order, e.g. `['to', 'title', 'msg', 'sign']` puts the name first; `['msg', 'to']` makes a 2-line template and hides the other inputs |
 | `fitFirst`, `fitFirstMin` | When text overflows, shrink only this field first (down to `fitFirstMin`) before shrinking the whole card, so e.g. the name keeps its size |
 | `labels` | Extra hint after “Dòng N” in the editor, per field |
+| `fieldLabels` | `{ field: [label, placeholder] }` for the editor inputs |
+| `parts` | Style parts shown under “Kiểu chữ” / text colors, e.g. `[['title', …], ['body', …], ['hand', …]]`; `fieldFont` maps fields to a part |
+| `manual` | `true`: usage-guide layout. `bad` / `good` are lists (one item per line; a first line ending in `:` is the box heading) |
 | `paper` | Card background override (e.g. white around a label) |
 | `shop` | Whether the shop footer is on by default |
 | `divider`, `gap`, `tight`, `fieldFont`, `toStyle`, `signStyle` | Optional layout tweaks |
@@ -135,7 +139,7 @@ index.html?mau=tet&giay=8&huong=ngang&mausac=do&nguoinhan=A|B
 
 | Param | Values |
 | --- | --- |
-| `mau` | template id: `camon`, `camonnho`, `kinhtang`, `dongchu`, `khung`, `sticker`, `sticker2`, `tet`, `bieu`, `maukhoe`, `phunu`, `pn_hong`, `pn_mau`, `pn_sen`, `pn_nhi`, `nhanxinh`, `nhan2010`, `chaomung`, `huongdan`, `nhan` |
+| `mau` | template id: `camon`, `camonnho`, `kinhtang`, `dongchu`, `khung`, `sticker`, `sticker2`, `tet`, `bieu`, `maukhoe`, `phunu`, `pn_hong`, `pn_mau`, `pn_sen`, `pn_nhi`, `nhanxinh`, `nhan2010`, `chaomung`, `huongdan`, `hdsd`, `nhan` |
 | `giay` | layout: `1`, `2`, `4`, `6`, `8`, `10`, `12`, `21`, `strip` |
 | `huong` | `doc` or `ngang` |
 | `mausac` | theme: `kem`, `do`, `trang`, `hong`, `ngoc`, `vang`, `dem`, `tim` |

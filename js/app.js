@@ -9,7 +9,9 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const PX = 96 / 25.4; // 1 mm = 3.78 px
   const SHEET = { w: 210, h: 297, m: 6 }; // A4, chừa lề trắng 6 mm
-  const FIELDS = ['title', 'to', 'msg', 'sign'];
+  const BASIC = ['title', 'to', 'msg', 'sign']; // 4 ô chữ của thiệp thường
+  const FIELDS = [...BASIC, 'note', 'bad', 'good', 'date']; // + các ô của thẻ hướng dẫn (ô bảo quản, ✗, ✓, hạn dùng)
+  const noEdits = () => Object.fromEntries(FIELDS.map((k) => [k, false]));
   const r2 = (n) => Math.round(n * 100) / 100;
 
   const LAYOUTS = [
@@ -63,10 +65,11 @@
     if (art === 'tile') return `<div class="bgart tile" style="opacity:${op}"></div>`;
     return `<div class="bgart" style="opacity:${op}">${artImgs(art, landscapeK(w, h))}</div>`;
   }
-  const orderOf = (t) => t.order || FIELDS;
+  const orderOf = (t) => t.order || BASIC;
 
   // Các phần chỉnh kiểu chữ riêng: mẫu thường có 2 phần, mẫu "nhiều dòng" mỗi dòng một phần
   function partsFor(t) {
+    if (t.parts) return t.parts;
     return t.lines
       ? orderOf(t).map((k, i) => [k, `Dòng ${i + 1}`])
       : [['title', 'Tiêu đề'], ['body', 'Lời nhắn & tên']];
@@ -75,7 +78,8 @@
   function fromTemplate(id, prev) {
     const t = TPL[id] || TEMPLATES[0];
     const style = {};
-    ['title', 'body', ...(t.lines ? ['to', 'msg', 'sign'] : [])].forEach((k) => {
+    const partKeys = partsFor(t).map(([k]) => k);
+    new Set(['title', 'body', ...(t.lines ? ['to', 'msg', 'sign'] : []), ...partKeys]).forEach((k) => {
       style[k] = { ...DEFAULT_STYLE, ...(t.style[k] || (k === 'title' ? {} : t.style.body) || {}) };
     });
     const s = {
@@ -92,12 +96,12 @@
       bgLevel: 2,
       showShop: !!t.shop,
       savedId: null, // mẫu của tôi đang mở (nếu có)
-      text: { ...t.text },
+      text: Object.fromEntries(FIELDS.map((k) => [k, t.text[k] || ''])),
       cards: [], // chữ riêng của từng thiệp: cards[i] = { title?, to?, msg?, sign? } (chỉ ô đã sửa)
       count: null, // số thiệp cố định (null = tự động: đầy 1 tờ, hoặc 1 thiệp mỗi tên)
-      edited: { title: false, to: false, msg: false, sign: false },
+      edited: noEdits(),
       style,
-      colors: { title: null, body: null, to: null, msg: null, sign: null, ...(t.colors || {}) },
+      colors: { ...Object.fromEntries(['title', 'body', 'to', 'msg', 'sign', ...partKeys].map((k) => [k, null])), ...(t.colors || {}) },
     };
     // Giữ lại chữ người dùng đã tự gõ khi đổi mẫu
     if (prev) FIELDS.forEach((k) => {
@@ -264,7 +268,8 @@
     const out = [];
     const total = totalCards(st, g || geometry(st));
     for (let i = 0; i < total; i++) {
-      const tx = { title: st.text.title, to: multi ? names[i] || '' : names[0] || '', msg: st.text.msg, sign: st.text.sign };
+      const tx = Object.fromEntries(FIELDS.map((k) => [k, st.text[k] || '']));
+      tx.to = multi ? names[i] || '' : names[0] || '';
       const o = st.cards && st.cards[i];
       if (o) FIELDS.forEach((k) => { if (typeof o[k] === 'string') tx[k] = o[k]; });
       out.push(tx);
@@ -282,12 +287,11 @@
       if (t.lines) {
         s = st.style[f] || st.style.body;
         color = st.colors[f] || th.title;
-      } else if (f === 'title' || ff[f] === 'title') {
-        s = st.style.title;
-        color = st.colors.title || th.title;
       } else {
-        s = st.style.body;
-        color = st.colors.body || th.text;
+        // ô chữ dùng kiểu của phần nào: tiêu đề, nội dung, hoặc phần riêng của mẫu (VD: chữ viết tay)
+        const pk = f === 'title' ? 'title' : ff[f] || 'body';
+        s = st.style[pk] || st.style.body;
+        color = st.colors[pk] || (pk === 'body' ? th.text : th.title);
       }
       out[f] = { ...s, color };
     });
@@ -307,11 +311,73 @@
     return k ? r2(Math.min(7, Math.max(1.2, Math.min(w, h) * k))) : 0;
   }
 
+  /* ---------- Thẻ hướng dẫn sử dụng (bố cục riêng) ---------- */
+  // Pha 2 màu #rrggbb: k = phần của màu a
+  function mix(a, b, k) {
+    const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const A = p(a);
+    const B = p(b);
+    return '#' + A.map((v, i) => Math.round(v * k + B[i] * (1 - k)).toString(16).padStart(2, '0')).join('');
+  }
+  function manualVars(st, t, th) {
+    const dark = luminance(th.bg) < 0.45;
+    const band = st.colors.title || th.title;
+    const hs = st.style.hand || st.style.body;
+    return {
+      '--frame': th.frame,
+      '--tint': mix(th.frame, th.bg, dark ? 0.3 : 0.13), // nền ô bảo quản
+      '--box': dark ? mix('#000000', th.bg, 0.16) : mix('#FFFFFF', th.bg, 0.6), // nền 2 ô danh sách
+      '--hl': dark ? mix('#FFFFFF', th.bg, 0.14) : mix('#F2C14E', th.bg, 0.24), // nền dòng hạn sử dụng
+      '--band': band,
+      '--band-ink': luminance(band) > 0.62 ? '#2A1C12' : '#FFFFFF',
+      '--f-hand': fontStack(hs.font),
+      '--w-hand': hs.bold ? 700 : 400,
+      '--i-hand': hs.italic ? 'italic' : 'normal',
+      '--c-hand': st.colors.hand || th.title,
+      '--s-head': r2((t.sizes.head || 4) * hs.size),
+    };
+  }
+  function manualHTML(st, tx, fs) {
+    const lines = (v) => String(v || '').split('\n').map((x) => x.trim()).filter(Boolean);
+    const ink = (k) => fs[k].color;
+    // ô danh sách: mỗi dòng một ý; dòng đầu có dấu ":" ở cuối là tên ô
+    const list = (k, kind, color) => {
+      const ls = lines(tx[k]);
+      if (!ls.length) return '';
+      const head = /[:：]$/.test(ls[0]) ? ls.shift() : '';
+      const items = ls.map((x) => `<li>${O.icon(kind, color)}<span>${esc(x)}</span></li>`).join('');
+      return `<div class="mn-box mn-${k}">${head ? `<div class="mn-head">${esc(head)}</div>` : ''}${items ? `<ul>${items}</ul>` : ''}</div>`;
+    };
+    const showShop = st.showShop;
+    const band = st.colors.title || THEMES[st.theme].title;
+    const bandInk = luminance(band) > 0.62 ? '#2A1C12' : '#FFFFFF';
+    let top = '';
+    const logo = showShop && shop.logo && shop.showLogo ? `<img class="mn-logo" src="${shop.logo}" alt="">` : '';
+    if (showShop && (shop.name || logo)) {
+      top += `<div class="mn-shop">${logo || O.birds(ink('title'))}${shop.name ? `<span>${esc(shop.name)}</span>` : ''}</div>`;
+    }
+    if (tx.title) top += `<div class="mn-title">${esc(tx.title)}</div>`;
+    const left =
+      (tx.to ? `<div class="t-to">${esc(tx.to)}</div>` : '') +
+      (tx.msg ? `<div class="t-msg">${esc(tx.msg)}</div>` : '') +
+      (tx.note ? `<div class="mn-note">${O.icon('snow', ink('title'))}<span>${esc(tx.note)}</span></div>` : '');
+    const boxes = list('bad', 'no', '#D9372B') + list('good', 'yes', '#2E9E50');
+    let right = boxes ? `<div class="mn-boxes">${boxes}</div>` : '';
+    if (tx.date) right += `<div class="mn-date">${O.icon('cal', ink('title'))}<span>${esc(tx.date)}</span></div>`;
+    // phần kết (cảm ơn + hotline) nằm dưới cùng
+    let end = tx.sign ? `<div class="t-sign">${esc(tx.sign)}</div>` : '';
+    if (showShop && (shop.phone || shop.extra)) {
+      end += `<div class="mn-hot">${shop.phone ? `<span class="mn-pill">${O.icon('phone', bandInk)}<span>Hotline / Zalo: <b>${esc(shop.phone)}</b></span></span>` : ''}${shop.extra ? `<span class="mn-extra">${esc(shop.extra)}</span>` : ''}</div>`;
+    }
+    if (end) right += `<div class="mn-end">${end}</div>`;
+    return `${top ? `<div class="mn-top">${top}</div>` : ''}<div class="mn-grid"><div class="mn-left">${left}</div><div class="mn-right">${right}</div></div>`;
+  }
+
   function cardHTML(st, w, h, tx, rotate, key) {
     const t = TPL[st.tpl];
     const th = THEMES[st.theme];
     const deco = st.deco && t.deco;
-    const pad = deco || t.plain ? t.pad : [9, 10, 9, 10];
+    const pad = deco || t.plain || t.manual ? t.pad : [9, 10, 9, 10];
     const sz = t.sizes;
     const fs = fieldStyles(st, t, th);
     const align = t.lines ? 'center' : st.style.body.align;
@@ -334,8 +400,9 @@
       vars[`--i-${f}`] = x.italic ? 'italic' : 'normal';
       vars[`--u-${f}`] = x.upper ? 'uppercase' : 'none';
       vars[`--c-${f}`] = x.color;
-      vars[`--s-${f}`] = r2(sz[f] * x.size);
+      if (sz[f] != null) vars[`--s-${f}`] = r2(sz[f] * x.size);
     });
+    if (t.manual) Object.assign(vars, manualVars(st, t, th));
     const style = `width:${r2(w)}mm;height:${r2(h)}mm;` + Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';');
     const cls = (field) => {
       const extra = field === 'to' ? t.toStyle : field === 'sign' ? t.signStyle : null;
@@ -351,10 +418,11 @@
       msg: () => (tx.msg ? `<div class="t-msg">${esc(tx.msg)}</div>` : ''),
       sign: () => (tx.sign ? `<div class="t-sign al-auto ${cls('sign')}">${esc(tx.sign)}</div>` : ''),
     };
-    orderOf(t).forEach((k) => (stack += piece[k]()));
+    if (t.manual) stack = manualHTML(st, tx, fs);
+    else orderOf(t).forEach((k) => (stack += piece[k]()));
 
     let shopHTML = '';
-    if (withShop) {
+    if (withShop && !t.manual) {
       const line1 = [shop.name && `<b>${esc(shop.name)}</b>`, shop.phone && esc(shop.phone)].filter(Boolean).join(' · ');
       shopHTML = `<div class="t-shop">${line1}${shop.extra ? (line1 ? '<br>' : '') + esc(shop.extra) : ''}</div>`;
     }
@@ -363,11 +431,11 @@
     const m = Math.min(w, h);
     const svg = (st.bgPat !== 'none' ? bgArtHTML(st.bgPat, PAT_OPACITY[st.bgLevel] || 0.38, w, h) : '') +
       (deco ? `<svg class="deco" ${box}>${t.deco(w, h, m, th)}</svg>` : '') +
-      (deco && t.art ? `<div class="art-over">${artImgs(t.art)}</div>` : '');
+      (st.deco && t.art && (deco || t.manual) ? `<div class="art-over">${artImgs(t.art)}</div>` : '');
     const ct = contourMm(st, w, h);
     const ctColor = luminance(fs.title.color) > 0.72 ? '#8C8C8C' : fs.title.color;
     const ctSvg = ct ? `<svg class="contour" ${box}><path d="" fill="none" stroke="${ctColor}" stroke-width="0.25" stroke-linejoin="round"/></svg>` : '';
-    const classes = ['card', rotate && 'rot', t.tight && 'tight'].filter(Boolean).join(' ');
+    const classes = ['card', rotate && 'rot', t.tight && 'tight', t.manual && 'manual'].filter(Boolean).join(' ');
     const ffAttr = t.fitFirst ? ` data-ff="${t.fitFirst}" data-ffmin="${t.fitFirstMin || 0.5}"` : '';
     return `<div class="${classes}" data-k="${esc(key)}"${ct ? ` data-ct="${ct}"` : ''}${ffAttr} style="${esc(style)}">${svg}${ctSvg}<div class="content"><div class="main-c"><div class="stack">${stack}</div></div>${shopHTML}</div></div>`;
   }
@@ -554,7 +622,7 @@
       const k = c.dataset.k;
       if (seen.has(k)) return;
       seen.add(k);
-      c.querySelectorAll('.t-title, .t-to, .t-msg, .t-sign').forEach((el) => {
+      c.querySelectorAll('.t-title, .t-to, .t-msg, .t-sign, .mn-title, .mn-box li, .mn-note, .mn-date, .mn-head').forEach((el) => {
         const mm = parseFloat(getComputedStyle(el).fontSize) / PX;
         if (mm < minMm) minMm = mm;
       });
@@ -798,7 +866,8 @@
       });
       FIELDS.forEach((k) => { if (!L[k]) L[k] = ['', '']; });
     } else {
-      Object.assign(L, { title: ['Tiêu đề', 'VD: Lời Cảm Ơn'], to: ['Gửi đến', 'VD: Kính gửi Cô Lan'], msg: ['Lời nhắn', 'Gõ lời chúc ở đây'], sign: ['Ký tên / Người gửi', 'VD: Trân trọng cảm ơn!'] });
+      Object.assign(L, { title: ['Tiêu đề', 'VD: Lời Cảm Ơn'], to: ['Gửi đến', 'VD: Kính gửi Cô Lan'], msg: ['Lời nhắn', 'Gõ lời chúc ở đây'], sign: ['Ký tên / Người gửi', 'VD: Trân trọng cảm ơn!'] }, t.fieldLabels || {});
+      FIELDS.forEach((k) => { if (!L[k]) L[k] = ['', '']; });
     }
     FIELDS.forEach((f) => {
       $(`#lb-${f}`).textContent = L[f][0];
@@ -810,7 +879,9 @@
     // Mẫu chỉ có 2 dòng thì ẩn các ô không dùng cho gọn
     FIELDS.forEach((k) => { $(`[data-fgroup="${k}"]`).hidden = !orderOf(t).includes(k); });
     // Chip tiêu đề có sẵn chỉ hợp với ô Tiêu đề của thiệp thường
-    $('#titleChips').hidden = !!t.lines;
+    $('#titleChips').hidden = !!(t.lines || t.manual);
+    // Mẹo "mỗi người một dòng" chỉ đúng với thiệp có ô Gửi đến là tên người nhận
+    $('[data-fgroup="to"] .tip').classList.toggle('off', !!t.manual);
   }
 
   function buildLayouts() {
@@ -846,8 +917,21 @@
     }
   }
 
-  function shortLabel(tx) {
-    const s = String(tx.to || tx.title || tx.msg || '').split('\n')[0].trim();
+  // Nhãn ngắn trên nút chọn thiệp: chữ riêng của thiệp đó (nếu có), không thì tên người nhận / tiêu đề
+  function shortLabel(tx, i) {
+    const t = TPL[state.tpl];
+    const own = state.cards[i] || {};
+    const k = orderOf(t).find((f) => typeof own[f] === 'string' && own[f].trim());
+    let v = '';
+    if (k) {
+      const ls = own[k].split('\n').map((x) => x.trim()).filter(Boolean);
+      v = k === 'bad' || k === 'good' ? ls[ls.length - 1] : ls[0];
+    } else if (!t.manual) {
+      v = String(tx.to || tx.title || tx.msg || '').split('\n')[0];
+    }
+    // "Hạn sử dụng: 28/11/2026" → chỉ hiện phần sau dấu ":"
+    const m = /[:：]\s*(\S.*)$/.exec(v);
+    const s = (m ? m[1] : v).trim();
     return s.length > 14 ? s.slice(0, 13) + '…' : s;
   }
 
@@ -855,7 +939,7 @@
     const total = texts.length;
     let h = `<button type="button" class="chip cardchip" data-card="-1" aria-pressed="${selCard < 0}">Tất cả</button>`;
     texts.forEach((tx, i) => {
-      const lb = shortLabel(tx);
+      const lb = shortLabel(tx, i);
       h += `<button type="button" class="chip cardchip${hasOwn(state, i) ? ' own' : ''}" data-card="${i}" aria-pressed="${selCard === i}" aria-label="Thiệp số ${i + 1}">${i + 1}${lb ? `<span>· ${esc(lb)}</span>` : ''}</button>`;
     });
     if (total < MAX_CARDS) h += '<button type="button" class="chip cardchip add" data-card="add">＋ Thêm thiệp</button>';
@@ -909,7 +993,7 @@
   function syncUI() {
     // Ô chữ. Gõ chữ ghi thẳng vào state nên ô đang gõ luôn khớp; chỉ khác khi chữ đổi từ chỗ khác
     // (chọn thiệp khác, Hoàn tác...). Trên iPhone bấm nút không làm ô chữ mất focus, nên vẫn phải ghi lại.
-    const map = { title: '#fTitle', to: '#fTo', msg: '#fMsg', sign: '#fSign' };
+    const map = { title: '#fTitle', to: '#fTo', msg: '#fMsg', sign: '#fSign', note: '#fNote', bad: '#fBad', good: '#fGood', date: '#fDate' };
     const texts = cardTexts(state);
     if (selCard >= texts.length) selCard = -1;
     FIELDS.forEach((k) => {
@@ -938,7 +1022,7 @@
     $('#togBold').setAttribute('aria-pressed', String(!!st.bold));
     $('#togItalic').setAttribute('aria-pressed', String(!!st.italic));
     $('#togUpper').setAttribute('aria-pressed', String(!!st.upper));
-    $('#alignCtrl').hidden = t.lines || part !== 'body';
+    $('#alignCtrl').hidden = t.lines || t.manual || part !== 'body';
     $('#swPart').dataset.which = part;
     setPressed('#alignToggles .tog', (b) => b.dataset.align === state.style.body.align);
 
@@ -1429,7 +1513,7 @@
     $('#btnResetText').addEventListener('click', () => {
       const prev = clone(state);
       state.text = { ...TPL[state.tpl].text };
-      state.edited = { title: false, to: false, msg: false, sign: false };
+      state.edited = noEdits();
       state.cards = [];
       state.count = null;
       commit();

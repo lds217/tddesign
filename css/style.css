@@ -211,6 +211,7 @@ h3 { margin: 0 0 6px; font-size: 20px; }
   scrollbar-width: none;
 }
 .chips-scroll::-webkit-scrollbar { display: none; }
+.hint.tip.off { display: none; }
 .chips-scroll .chip { flex: none; min-height: 38px; font-size: 15px; }
 
 /* Chọn thiệp để sửa riêng */
@@ -641,6 +642,82 @@ body.tab-chu #sheets .slot.sel::before { background: #E03131; }
 .card.tight .t-title, .card.tight .t-to, .card.tight .t-msg, .card.tight .t-sign { line-height: 1.18; margin-bottom: 0; }
 .card.tight .t-msg, .card.tight .t-title { text-wrap: balance; }
 .card .contour { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+
+/* ---------- Thẻ hướng dẫn sử dụng (.card.manual) ----------
+ * Cỡ chữ theo cạnh ngắn (cqmin) × --fit để tự thu nhỏ khi nhiều chữ. Màu nền các ô tính sẵn trong JS
+ * (--tint, --box, --hl) vì html2canvas (tạo PDF) không hiểu color-mix(). */
+.card.manual .main-c { justify-content: flex-start; }
+.card.manual .stack { flex: 1 0 auto; min-height: 100%; gap: 0; text-align: left; }
+.card.manual .ic { flex: none; display: block; width: 1.3em; height: 1.3em; }
+.mn-top { display: flex; flex-direction: column; align-items: center; gap: calc(1.1cqmin * var(--fit)); margin-bottom: calc(2.4cqmin * var(--fit)); }
+.mn-shop {
+  display: flex; align-items: center; gap: calc(1.2cqmin * var(--fit));
+  font: 700 calc(var(--s-shop) * var(--fit) * 1cqmin)/1.2 'Be Vietnam Pro', sans-serif;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--c-title);
+}
+.card.manual .mn-shop .ic-birds { width: 3.6em; height: 1.8em; margin: -.3em 0; }
+.mn-logo { display: block; height: calc(5.5cqmin * var(--fit)); max-width: calc(16cqmin * var(--fit)); object-fit: contain; }
+.mn-title {
+  max-width: 94%;
+  padding: calc(1.2cqmin * var(--fit)) calc(4.2cqmin * var(--fit));
+  border-radius: calc(1.6cqmin * var(--fit));
+  background: var(--band); color: var(--band-ink);
+  font-family: var(--f-title); font-weight: var(--w-title); font-style: var(--i-title); text-transform: var(--u-title);
+  font-size: calc(var(--s-title) * var(--fit) * 1cqmin); line-height: 1.18; letter-spacing: .03em;
+  text-align: center; white-space: pre-line; text-wrap: balance;
+}
+.mn-grid {
+  flex: 1 0 auto;
+  display: grid; grid-template-columns: minmax(0, .76fr) minmax(0, 1.34fr);
+  column-gap: calc(3.6cqmin * var(--fit)); row-gap: calc(2cqmin * var(--fit));
+}
+/* cột trái: chừa chỗ dưới cùng cho cành trà ở góc (không thu nhỏ theo chữ) */
+.mn-left { display: flex; flex-direction: column; gap: calc(1.5cqmin * var(--fit)); padding-bottom: 33cqmin; }
+.mn-right { display: flex; flex-direction: column; gap: calc(1.7cqmin * var(--fit)); }
+.card.manual .t-to { font-family: var(--f-to); color: var(--c-to); font-size: calc(var(--s-to) * var(--fit) * 1cqmin); line-height: 1.15; margin: 0; text-wrap: initial; }
+.card.manual .t-msg { font-size: calc(var(--s-msg) * var(--fit) * 1cqmin); line-height: 1.45; text-wrap: pretty; }
+.card.manual .t-sign { font-size: calc(var(--s-sign) * var(--fit) * 1cqmin); line-height: 1.2; text-align: center; }
+.mn-note, .mn-date {
+  display: flex; align-items: center; gap: .55em;
+  border-radius: calc(1.8cqmin * var(--fit));
+  font-family: var(--f-msg); font-weight: var(--w-msg); font-style: var(--i-msg); color: var(--c-msg);
+  white-space: pre-line;
+}
+.mn-note { padding: calc(1.3cqmin * var(--fit)) calc(1.8cqmin * var(--fit)); background: var(--tint); font-size: calc(var(--s-note) * var(--fit) * 1cqmin); line-height: 1.35; font-weight: 600; text-wrap: balance; }
+.mn-note .ic { width: 1.7em; height: 1.7em; }
+.mn-date { padding: calc(1cqmin * var(--fit)) calc(1.8cqmin * var(--fit)); background: var(--hl); font-size: calc(var(--s-date) * var(--fit) * 1cqmin); line-height: 1.3; font-weight: 600; }
+.mn-boxes { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: calc(2cqmin * var(--fit)); }
+.mn-box {
+  padding: calc(1.3cqmin * var(--fit)) calc(1.6cqmin * var(--fit)) calc(1.6cqmin * var(--fit));
+  border: max(.2mm, calc(.32cqmin * var(--fit))) dashed var(--frame);
+  border-radius: calc(2cqmin * var(--fit));
+  background: var(--box);
+}
+.mn-head {
+  margin-bottom: calc(.6cqmin * var(--fit));
+  font-family: var(--f-hand); font-weight: var(--w-hand); font-style: var(--i-hand); color: var(--c-hand);
+  font-size: calc(var(--s-head) * var(--fit) * 1cqmin); line-height: 1.15;
+}
+.mn-box ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: calc(.9cqmin * var(--fit)); }
+.mn-box li { display: flex; align-items: flex-start; gap: .45em; line-height: 1.28; text-wrap: pretty; }
+.mn-box li .ic { width: 1.25em; height: 1.25em; margin-top: .02em; }
+.mn-bad li { font-family: var(--f-bad); font-weight: var(--w-bad); font-style: var(--i-bad); color: var(--c-bad); font-size: calc(var(--s-bad) * var(--fit) * 1cqmin); }
+.mn-good li { font-family: var(--f-good); font-weight: var(--w-good); font-style: var(--i-good); color: var(--c-good); font-size: calc(var(--s-good) * var(--fit) * 1cqmin); }
+.mn-end { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: calc(1.8cqmin * var(--fit)); padding-top: calc(.6cqmin * var(--fit)); }
+.mn-hot { display: flex; flex-direction: column; align-items: center; gap: calc(.6cqmin * var(--fit)); }
+.mn-pill {
+  display: inline-flex; align-items: center; gap: .5em;
+  padding: calc(.9cqmin * var(--fit)) calc(2.6cqmin * var(--fit));
+  border-radius: 99cqmin; background: var(--band); color: var(--band-ink);
+  font: 500 calc(var(--s-shop) * 1.15 * var(--fit) * 1cqmin)/1.2 'Be Vietnam Pro', sans-serif;
+}
+.mn-pill b { font-weight: 800; letter-spacing: .02em; }
+.mn-extra { font: 400 calc(var(--s-shop) * var(--fit) * 1cqmin)/1.3 'Be Vietnam Pro', sans-serif; color: var(--c-body); text-align: center; }
+/* thẻ đứng (dọc): xếp 1 cột, cành trà chỉ chừa chỗ ở cuối thẻ */
+@container (max-aspect-ratio: 6/5) {
+  .mn-grid { grid-template-columns: minmax(0, 1fr); padding-bottom: 30cqmin; }
+  .mn-left { padding-bottom: 0; }
+}
 .measure-stage { position: fixed; left: -20000px; top: 0; visibility: hidden; pointer-events: none; }
 
 .cutlines { position: absolute; left: 0; top: 0; width: 210mm; height: 297mm; pointer-events: none; }

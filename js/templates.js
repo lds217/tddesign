@@ -40,6 +40,7 @@
     { id: '2010', name: 'Mùa 20/10 · Tặng mẹ, cô, chị em', months: [9, 10] },
     { id: 'tet', name: 'Tết', months: [12, 1, 2] },
     { id: 'camon', name: 'Cảm ơn khách hàng' },
+    { id: 'hd', name: 'Hướng dẫn sử dụng & bảo quản' },
     { id: 'qua', name: 'Quà biếu, chúc sức khỏe' },
     { id: 'chu', name: 'Chữ, nhãn & sticker dán hộp' },
   ];
@@ -349,7 +350,7 @@
         O.cloud(w - m * 0.11, m * 0.115, m * 0.13, t.frame, true),
     },
     {
-      id: 'huongdan', group: 'camon', name: 'Cách chưng yến', theme: 'kem', layout: '4', orient: 'portrait', shop: true,
+      id: 'huongdan', group: 'hd', name: 'Cách chưng yến', theme: 'kem', layout: '4', orient: 'portrait', shop: true,
       text: {
         title: 'Cách Chưng Yến',
         to: '',
@@ -364,6 +365,46 @@
         O.frameSimple(w, h, m, t.frame, true) +
         O.swallow(w / 2 - m * 0.05, m * 0.105, m * 0.08, t.title, -12) +
         O.swallow(w / 2 + m * 0.055, m * 0.09, m * 0.06, t.title, 12),
+    },
+    {
+      /* Thẻ hướng dẫn sử dụng bỏ kèm hộp yến chưng: dải tiêu đề, lời chào, ô bảo quản,
+       * 2 ô danh sách (✗ lưu ý / ✓ cách dùng), hạn sử dụng, lời cảm ơn, hotline.
+       * Bố cục riêng (manual: true) — các ô trống thì không in. Ô danh sách: mỗi dòng 1 ý,
+       * dòng đầu kết thúc bằng dấu ":" là tên ô. */
+      id: 'hdsd', group: 'hd', name: 'Hướng dẫn sử dụng yến chưng', theme: 'ngoc', layout: '4', orient: 'landscape', shop: true,
+      manual: true,
+      order: ['title', 'to', 'msg', 'note', 'bad', 'good', 'date', 'sign'],
+      parts: [['title', 'Tiêu đề'], ['body', 'Nội dung'], ['hand', 'Viết tay']],
+      fieldFont: { to: 'hand', sign: 'hand' },
+      fieldLabels: {
+        title: ['Tiêu đề (trên dải màu)', 'VD: Hướng dẫn sử dụng yến chưng'],
+        to: ['Lời chào', 'VD: Gửi khách thương,'],
+        msg: ['Lời nhắn', 'Vài câu về yến của tiệm'],
+        note: ['Ô bảo quản (có hình bông tuyết)', 'VD: Cho yến vào ngăn mát tủ lạnh ngay khi nhận.'],
+        bad: ['Ô lưu ý (dấu ✗)', 'Lưu ý:\nKhông chưng lại yến'],
+        good: ['Ô cách dùng (dấu ✓)', 'Cách dùng ngon:\nLắc nhẹ trước khi dùng'],
+        date: ['Hạn sử dụng', 'VD: Hạn sử dụng: 25/11/2026'],
+        sign: ['Lời cảm ơn', 'VD: Cảm ơn khách thương!'],
+      },
+      text: {
+        title: 'Hướng dẫn sử dụng yến chưng',
+        to: 'Gửi khách thương,',
+        msg: 'Yến tại tiệm được chưng thủ công mỗi ngày, không dùng chất bảo quản, nên cần giữ lạnh để yến luôn thơm ngon.',
+        note: 'Cho yến vào ngăn mát tủ lạnh ngay khi nhận nhé!',
+        bad: 'Lưu ý:\nKhông chưng lại yến\nKhông để yến ở nhiệt độ thường lâu\nKhông để yến ở cánh cửa tủ lạnh\nKhông dùng khi yến có mùi lạ',
+        good: 'Cách dùng ngon:\nLắc nhẹ trước khi dùng\nDùng lạnh hoặc hâm nóng cách thủy\nNgon nhất vào buổi sáng hoặc trước khi ngủ',
+        date: 'Hạn sử dụng: ....... / ....... / ...........',
+        sign: 'Cảm ơn khách thương đã tin tưởng lựa chọn!\nKính chúc Quý khách luôn khỏe mạnh.',
+      },
+      style: {
+        title: { font: 'Be Vietnam Pro', bold: true, upper: true },
+        body: { font: 'Be Vietnam Pro', align: 'left' },
+        hand: { font: 'Dancing Script', bold: true },
+      },
+      sizes: { title: 5, to: 5.4, msg: 3.15, note: 3.1, bad: 3.05, good: 3.05, head: 4.7, date: 3.2, sign: 4.4, shop: 2.9 },
+      pad: [5.5, 6, 5, 6],
+      art: [{ src: 'tea-bl', left: 0, bottom: 0, h: 37 }, { src: 'tea-tr', right: 0, top: 0, h: 17 }],
+      deco: null,
     },
     {
       id: 'nhan', group: 'chu', name: 'Nhãn dán hộp yến', theme: 'trang', layout: '21', orient: 'landscape', shop: true,

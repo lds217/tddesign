@@ -1,4 +1,4 @@
-# Flower artwork
+# Flower and leaf artwork
 
 All images in this folder are cut out from botanical illustrations that are in the
 public domain (the artists died more than 100 years ago). The scans come from
@@ -11,3 +11,4 @@ Wikimedia Commons. `tools/make_art.py` rebuilds every file from the original sca
 | `lotus.webp`, `lotus-top.webp` | [Nelumbo nucifera](https://commons.wikimedia.org/wiki/File:Nelumbo_nucifera_Blanco1.158.png), *Flora de Filipinas* (1880–1883) | Francisco Manuel Blanco |
 | `peach.webp`, `b-pink*.webp`, `tile-blossoms.webp` | [Prunus mume](https://commons.wikimedia.org/wiki/File:Prunus_mume_SZ11.png), *Flora Japonica* (1835–1870) | Philipp Franz von Siebold & Joseph Gerhard Zuccarini |
 | `frangipani.webp`, `frangipani-r.webp` | [Plumeria acutifolia](https://commons.wikimedia.org/wiki/File:Frangipani_-_Unknown_-_19_1927_2_69.jpg), Company-school watercolour | Unknown artist |
+| `tea-bl.webp`, `tea-tr.webp` | [Camellia sinensis](https://commons.wikimedia.org/wiki/File:Camellia_sinensis_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-025.jpg), *Köhler's Medizinal-Pflanzen* (1887) | Franz Eugen Köhler |

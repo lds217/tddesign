@@ -10,7 +10,7 @@ flood fill (so enclosed white petals stay opaque); those pixels get a
 "colour to alpha" value against the measured paper colour so soft edges and
 shadows fade out smoothly.
 
-Usage:  python3 tools/make_art.py          (needs Pillow, numpy, scipy)
+Usage:  python3 tools/make_art.py [crop ...]   (needs Pillow, numpy, scipy; no names = rebuild all)
 """
 import json
 import os
@@ -34,6 +34,7 @@ SOURCES = {
     'lotus': 'File:Nelumbo nucifera Blanco1.158.png',                         # F. M. Blanco, Flora de Filipinas (1880–83)
     'mume': 'File:Prunus mume SZ11.png',                                      # Siebold & Zuccarini, Flora Japonica (1835–70)
     'frangi': 'File:Frangipani - Unknown - 19 1927 2 69.jpg',                 # Company-school watercolour, Plumeria acutifolia
+    'tea': 'File:Camellia sinensis - Köhler–s Medizinal-Pflanzen-025.jpg',    # F. E. Köhler, Köhler's Medizinal-Pflanzen (1887)
 }
 
 # name: (source, crop box (x0, y0, x1, y1) in source pixels, longest output side, options)
@@ -50,6 +51,14 @@ CROPS = {
     'b-pink1': ('mume', (290, 1085, 465, 1240), 260, {'kill_grey': True}),
     'b-pink2': ('mume', (270, 1390, 445, 1560), 260, {'kill_grey': True}),
     'b-pink3': ('mume', (345, 705, 455, 812), 200, {'kill_grey': True}),
+    # tea branch (green leaves, white flowers) for the usage-guide card. The scan's paper is lighter at the top
+    # and grainy, so it is matched against a fitted paper surface; small numbered diagrams beside the branch are erased.
+    'tea-branch': ('tea', (150, 30, 1235, 1420), 1000, {'surface': True, 'flat': True, 'gap': 4, 'tol': 22, 'blur': 3, 'floor': 0.12, 'hi_floor': 60,
+                   'erase': [(150, 150, 262, 510), (140, 600, 200, 880), (140, 1180, 242, 1330), (575, 1362, 610, 1402),
+                             (1165, 1262, 1235, 1420), (1040, 30, 1235, 110)],
+                   'save': False, 'corners': {'tea-bl': ('bl', 1000, False)}}),
+    'tea-sprig': ('tea', (320, 30, 1010, 490), 700, {'surface': True, 'flat': True, 'gap': 4, 'tol': 22, 'blur': 3, 'floor': 0.12, 'hi_floor': 60,
+                  'save': False, 'corners': {'tea-tr': ('tr', 640, False)}}),
 }
 
 
@@ -73,19 +82,69 @@ def paper_colour(img):
     return np.median(border, axis=0)
 
 
-def cut_out(crop, paper, tol=20, kill_grey=False, holes=True, floor=0.08, blur=0, fill=0, fill_to=1.0):
+def paper_surface(a):
+    """Per-pixel paper colour for unevenly lit scans: a quadratic surface fitted to clean, unpainted paper."""
+    h, w, _ = a.shape
+    mx, mn = a.max(2), a.min(2)
+    cand = ((mx - mn) / np.maximum(mx, 1) < 0.06) & (mx > 190)
+    cand = ndimage.binary_erosion(cand, iterations=12)  # stay well away from paint (and white petals)
+    ys, xs = np.nonzero(cand)
+    pick = np.random.default_rng(0).choice(len(xs), min(40000, len(xs)), replace=False)
+    ys, xs = ys[pick], xs[pick]
+    X, Y = xs / w, ys / h
+    A = np.stack([np.ones_like(X), X, Y, X * X, X * Y, Y * Y], 1)
+    gx, gy = np.meshgrid(np.arange(w) / w, np.arange(h) / h)
+    G = np.stack([np.ones_like(gx), gx, gy, gx * gx, gx * gy, gy * gy], -1)
+    out = np.zeros_like(a)
+    for c in range(3):
+        coef = np.linalg.lstsq(A, a[ys, xs, c], rcond=None)[0]
+        out[..., c] = G @ coef
+    return out
+
+
+def enclosed_paper(a, paper, near, gap, flat_sd=3.5):
+    """Paper mask for plates whose white petals have broken pencil outlines.
+    Small gaps in the outlines are closed first so the border flood fill cannot leak into a petal.
+    Patches the fill cannot reach count as paper only when flat and neutral grey (paper trapped between
+    stems); white petals are shaded or tinted cream, so they stay."""
+    barrier = ndimage.binary_closing(~near, iterations=gap) if gap else ~near
+    open_ = near & ~barrier
+    lab, n = ndimage.label(open_)
+    edge = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
+    idx = np.arange(n + 1)
+    lum = a.mean(2)
+    m1 = ndimage.mean(lum, lab, idx)
+    sd = np.sqrt(np.maximum(ndimage.mean(lum * lum, lab, idx) - m1 * m1, 0))
+    chroma = (a[..., 0] + a[..., 1]) / 2 - a[..., 2] - ((paper[..., 0] + paper[..., 1]) / 2 - paper[..., 2])
+    isbg = (ndimage.sum(open_, lab, idx) >= 150) & (sd < flat_sd) & (ndimage.mean(chroma, lab, idx) < 0.6)
+    isbg[edge] = True
+    isbg[0] = False
+    bg = isbg[lab]
+    # give back the strip of paper the closing took next to each outline
+    return bg | (ndimage.binary_dilation(bg, iterations=gap + 1) & near) if gap else bg
+
+
+def cut_out(crop, paper, tol=20, kill_grey=False, holes=True, floor=0.08, blur=0, fill=0, fill_to=1.0,
+            surface=False, flat=False, gap=0, hi_floor=1):
     a = np.asarray(crop, dtype=np.float32)
+    if surface:
+        paper = paper_surface(a)
     # colour-to-alpha against the paper colour (handles darker and lighter than paper)
+    # (hi_floor: on near-white paper, don't let faint grain brighter than the paper turn fully opaque)
     lo = np.where(a < paper, (paper - a) / np.maximum(paper, 1), 0)
-    hi = np.where(a > paper, (a - paper) / np.maximum(255 - paper, 1), 0)
+    hi = np.where(a > paper, (a - paper) / np.maximum(255 - paper, hi_floor), 0)
     c2a = np.clip(np.max(np.maximum(lo, hi), axis=2), 0, 1)
     # paper region = near-paper pixels connected to the crop border
     # blur first for white flowers on cream paper: smooths the paper grain so pale petals separate cleanly
     ab = ndimage.gaussian_filter(a, (blur, blur, 0)) if blur else a
     near = np.linalg.norm(ab - paper, axis=2) < tol
-    lab, _ = ndimage.label(near)
-    edge = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
-    bg = np.isin(lab, edge[edge > 0])
+    if flat:
+        bg = enclosed_paper(a, paper, near, gap)
+        holes = False
+    else:
+        lab, _ = ndimage.label(near)
+        edge = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
+        bg = np.isin(lab, edge[edge > 0])
     if holes:
         # paper showing between stems and leaves is enclosed, so it never touches the border: drop those patches too
         # (stricter colour match than the outer paper, so pale petals are not mistaken for paper)
@@ -155,7 +214,7 @@ def corner_piece(art, corner='tl', flip=False):
     Placed flush in the card corner, the cut is never visible: the art seems to grow out of the corner."""
     if flip:
         art = art.transpose(Image.FLIP_LEFT_RIGHT)
-    theta = -135 if corner == 'tl' else 45  # degrees, counter-clockwise as PIL.rotate
+    theta = {'tl': -135, 'tr': 135, 'br': 45, 'bl': -45}[corner]  # degrees, counter-clockwise as PIL.rotate
     w, h = art.size
     r = art.rotate(theta, expand=True, resample=Image.BICUBIC)
     W, H = r.size
@@ -167,31 +226,37 @@ def corner_piece(art, corner='tl', flip=False):
 
     (x1, y1), (x2, y2) = to_rot(0, h), to_rot(w, h)
     mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-    if corner == 'tl':
-        out = r.crop((int(np.floor(mx)), int(np.floor(my)), W, H))
-    else:
-        out = r.crop((0, 0, int(np.ceil(mx)), int(np.ceil(my))))
+    fx, fy, cx, cy = int(np.floor(mx)), int(np.floor(my)), int(np.ceil(mx)), int(np.ceil(my))
+    out = r.crop({'tl': (fx, fy, W, H), 'tr': (0, fy, cx, H), 'br': (0, 0, cx, cy), 'bl': (fx, 0, W, cy)}[corner])
     bb = out.getbbox()
     # keep the corner itself fixed; only trim transparent margin on the far sides
-    if corner == 'tl':
-        out = out.crop((0, 0, bb[2], bb[3]))
-    else:
-        out = out.crop((bb[0], bb[1], out.width, out.height))
-    return out
+    w, h = out.size
+    return out.crop({'tl': (0, 0, bb[2], bb[3]), 'tr': (bb[0], 0, w, bb[3]), 'br': (bb[0], bb[1], w, h), 'bl': (0, bb[1], bb[2], h)}[corner])
 
 
-def build():
+def build(only=None):
     os.makedirs(OUT, exist_ok=True)
     srcs = {}
     for name, (src, box, size, opt) in CROPS.items():
+        if only and name not in only:
+            continue
         if src not in srcs:
             img = fetch(src)
             srcs[src] = (img, paper_colour(img))
         img, _ = srcs[src]
         crop = img.crop(box)
+        if opt.get('erase'):
+            # paint over small labelled diagrams that overlap the crop (boxes in plate pixels)
+            a = np.asarray(crop, dtype=np.float32)
+            p = paper_surface(a)
+            for x0, y0, x1, y1 in opt['erase']:
+                x0, y0, x1, y1 = max(0, x0 - box[0]), max(0, y0 - box[1]), x1 - box[0], y1 - box[1]
+                a[y0:y1, x0:x1] = p[y0:y1, x0:x1]
+            crop = Image.fromarray(a.astype(np.uint8))
         paper = paper_colour(crop)  # measure the paper next to this crop (plates are unevenly aged)
         art = cut_out(crop, paper, tol=opt.get('tol', 20), kill_grey=opt.get('kill_grey', False),
-                      holes=opt.get('holes', True), floor=opt.get('floor', 0.08), blur=opt.get('blur', 0), fill=opt.get('fill', 0), fill_to=opt.get('fill_to', 1.0))
+                      holes=opt.get('holes', True), floor=opt.get('floor', 0.08), blur=opt.get('blur', 0), fill=opt.get('fill', 0), fill_to=opt.get('fill_to', 1.0),
+                      surface=opt.get('surface', False), flat=opt.get('flat', False), gap=opt.get('gap', 0), hi_floor=opt.get('hi_floor', 1))
         if 'keep_top' in opt:
             # trim away what hangs below the flower (e.g. a bare stem) after the cut-out is done
             art = art.crop((0, 0, art.width, round(art.height * opt['keep_top'])))
@@ -217,7 +282,8 @@ def build():
             r = art.rotate(opt['rotated'], expand=True, resample=Image.BICUBIC)
             r.crop(r.getbbox()).save(os.path.join(OUT, name + '-r.webp'), 'WEBP', quality=86, method=6)
         print(f'{name:12} {art.size}  {os.path.getsize(os.path.join(OUT, name + ".webp")) // 1024} KB  faded: {",".join(cut) or "-"}')
-    build_tile()
+    if not only or 'tile-blossoms' in only:
+        build_tile()
 
 
 def build_tile(size=640):
@@ -240,4 +306,5 @@ def build_tile(size=640):
 
 
 if __name__ == '__main__':
-    build()
+    import sys
+    build(sys.argv[1:] or None)  # optional: names of crops to rebuild, e.g. tea-branch tea-sprig

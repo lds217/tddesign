@@ -301,8 +301,39 @@
     return `<svg class="t-divider" viewBox="0 0 120 8" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M4 4H49M71 4H116" stroke="${color}" stroke-width=".8"/><path d="M60 .6L63.4 4L60 7.4L56.6 4Z" fill="${color}"/><circle cx="52.5" cy="4" r="1.2" fill="${color}"/><circle cx="67.5" cy="4" r="1.2" fill="${color}"/></svg>`;
   }
 
+  /* Biểu tượng nhỏ đứng cạnh chữ (thẻ hướng dẫn), khung 24×24, cỡ theo chữ (1em).
+   * Màu ghi thẳng vào hình (không dùng currentColor) để bản PDF chụp ra đúng màu. */
+  function snowArm(a) {
+    const r = (x, y) => {
+      const t = (a * Math.PI) / 180;
+      return `${f(12 + x * Math.cos(t) - y * Math.sin(t))} ${f(12 + x * Math.sin(t) + y * Math.cos(t))}`;
+    };
+    return `M${r(0, 0)}L${r(0, -10)}M${r(-3.2, -9)}L${r(0, -6.2)}L${r(3.2, -9)}M${r(-2.4, -5.2)}L${r(0, -3.4)}L${r(2.4, -5.2)}`;
+  }
+  const ICON = {
+    // dấu ✗ trong vòng tròn
+    no: (c) => `<circle cx="12" cy="12" r="11" fill="${c}"/><path d="M8.2 8.2L15.8 15.8M15.8 8.2L8.2 15.8" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`,
+    // dấu ✓ trong vòng tròn
+    yes: (c) => `<circle cx="12" cy="12" r="11" fill="${c}"/><path d="M6.9 12.5L10.4 15.9L17.2 8.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`,
+    // bông tuyết 6 cánh (giữ lạnh)
+    snow: (c) => `<path d="${[0, 60, 120, 180, 240, 300].map(snowArm).join('')}" fill="none" stroke="${c}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>`,
+    // lịch
+    cal: (c) => `<rect x="2.5" y="4.5" width="19" height="17" rx="3" fill="none" stroke="${c}" stroke-width="1.8"/><path d="M2.5 9.6H21.5" stroke="${c}" stroke-width="1.8"/><path d="M7.5 2.5V6.5M16.5 2.5V6.5" stroke="${c}" stroke-width="2" stroke-linecap="round"/>` +
+      [[7, 13.4], [12, 13.4], [17, 13.4], [7, 17.6], [12, 17.6]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.25" fill="${c}"/>`).join(''),
+    // ống nghe điện thoại
+    phone: (c) => `<path d="M6.4 2.8C7.2 2.4 8.1 2.6 8.6 3.4L10.4 6.6C10.8 7.4 10.6 8.3 9.9 8.9L8.7 9.8C9.6 11.9 11.9 14.3 14.2 15.3L15.1 14.1C15.7 13.4 16.6 13.2 17.4 13.6L20.6 15.4C21.4 15.9 21.6 16.8 21.2 17.6L20.1 19.7C19.5 20.8 18.3 21.4 17 21.2C10.1 20.1 3.9 13.9 2.8 7C2.6 5.7 3.2 4.5 4.3 3.9Z" fill="${c}"/>`,
+  };
+  function icon(name, color) {
+    return `<svg class="ic ic-${name}" viewBox="0 0 24 24" aria-hidden="true">${ICON[name](color)}</svg>`;
+  }
+
+  // Đôi chim yến nhỏ (HTML inline), cạnh tên tiệm
+  function birds(color) {
+    return `<svg class="ic ic-birds" viewBox="0 0 32 16" aria-hidden="true">${swallow(11, 9.5, 11, color, -14)}${swallow(23, 6.5, 8, color, 10)}</svg>`;
+  }
+
   global.Orn = {
     swallow, flock, blossom, bud, branch, lantern, lotus, peach, cloud, drum, heart,
-    scallopPath, cuteLabel, frameClassic, frameHoivan, frameLattice, frameSimple, divider, SWALLOW,
+    scallopPath, cuteLabel, frameClassic, frameHoivan, frameLattice, frameSimple, divider, icon, birds, SWALLOW,
   };
 })(window);
