@@ -7,7 +7,7 @@ const CORE = [
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png',
   'vendor/html2canvas.min.js', 'vendor/jspdf.umd.min.js',
   'art/rose-tl.webp', 'art/rose-br.webp', 'art/peony-tl.webp', 'art/peony-br.webp', 'art/lotus-top.webp', 'art/lotus.webp', 'art/peach.webp',
-  'art/tile-blossoms.webp', 'art/frangipani.webp', 'art/frangipani-r.webp', 'art/tea-bl.webp', 'art/tea-tr.webp',
+  'art/tile-blossoms.webp', 'art/frangipani.webp', 'art/frangipani-r.webp', 'art/nest-board.webp', 'art/dates.webp',
 ];
 
 self.addEventListener('install', (e) => {

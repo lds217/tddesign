@@ -12,3 +12,9 @@ Wikimedia Commons. `tools/make_art.py` rebuilds every file from the original sca
 | `peach.webp`, `b-pink*.webp`, `tile-blossoms.webp` | [Prunus mume](https://commons.wikimedia.org/wiki/File:Prunus_mume_SZ11.png), *Flora Japonica* (1835–1870) | Philipp Franz von Siebold & Joseph Gerhard Zuccarini |
 | `frangipani.webp`, `frangipani-r.webp` | [Plumeria acutifolia](https://commons.wikimedia.org/wiki/File:Frangipani_-_Unknown_-_19_1927_2_69.jpg), Company-school watercolour | Unknown artist |
 | `tea-bl.webp`, `tea-tr.webp` | [Camellia sinensis](https://commons.wikimedia.org/wiki/File:Camellia_sinensis_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-025.jpg), *Köhler's Medizinal-Pflanzen* (1887) | Franz Eugen Köhler |
+
+## Product photos
+
+`nest-board.webp` (bird's nests on a wooden board) and `dates.webp` (dried red dates)
+are cut out of product photos supplied by the project owner with `tools/cut_photo.py`.
+They are **not** public domain and are not covered by the statement above.

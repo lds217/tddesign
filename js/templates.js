@@ -403,8 +403,8 @@
       },
       sizes: { title: 5, to: 5.4, msg: 3.15, note: 3.1, bad: 3.05, good: 3.05, head: 4.7, date: 3.2, sign: 4.4, shop: 2.9 },
       pad: [5.5, 6, 5, 6],
-      art: [{ src: 'tea-bl', left: 0, bottom: 0, h: 37 }, { src: 'tea-tr', right: 0, top: 0, h: 17 }],
-      deco: null,
+      art: [{ src: 'nest-board', left: 2.5, bottom: 4, w: 47 }, { src: 'dates', left: 37, bottom: 1.5, w: 15, rot: -8 }],
+      deco: (w, h, m, t) => O.flock(w - m * 0.11, m * 0.1, m * 0.058, t.title, 3),
     },
     {
       id: 'nhan', group: 'chu', name: 'Nhãn dán hộp yến', theme: 'trang', layout: '21', orient: 'landscape', shop: true,

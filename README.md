@@ -48,6 +48,7 @@ js/app.js             state, rendering, auto-fit, UI bindings, print/PDF
 vendor/               html2canvas 1.4.1, jsPDF 4.2.1 (lazy-loaded for PDF export)
 art/                  flower artwork (WebP with transparency) and CREDITS.md
 tools/make_art.py     rebuilds art/ from the original Commons scans (Pillow, numpy, scipy); pass crop names to rebuild only those
+tools/cut_photo.py    cuts a product photo out of a plain background (or picks out red dates/goji) into art/
 icons/                app icons
 manifest.webmanifest  PWA manifest
 sw.js                 service worker
